@@ -1,112 +1,99 @@
 # Third-Party Notices
 
-This document lists third-party data and assets distributed with **Wird**. The
-project's MIT license applies only to material owned by the project. Items below
-remain subject to their own terms and are not relicensed under MIT.
+This document identifies upstream code and third-party data distributed with
+**Wirdy**. The root MIT license covers only material owned by the project. The
+items below retain their original copyright, attribution, license, and usage
+terms.
+
+## Upstream Wird Project
+
+Wirdy is a mobile adaptation built from and inspired by:
+
+- Project: **Wird**
+- Repository: https://github.com/abu-ayesh/wird-project
+- License: MIT
+- Copyright notice: Copyright (c) 2026 Mohammad Zhour
+
+The upstream MIT copyright and permission notice is preserved in the root
+[LICENSE](LICENSE) file. Modifications and mobile-specific additions are
+described in the [README](README.md). Nothing in this notice changes the rights
+granted by the upstream MIT license.
 
 ## Tanzil Quran Text
 
-Files:
+Bundled file:
 
-- `quran-data/quran-uthmani.xml`
-- `quran-data/quran-data.xml`
-- `resources/quran.db` (generated from the files above)
+- `assets/databases/quran.db`
+
+The upstream Wird project documents this database as generated from Tanzil's
+Uthmani Quran text and metadata.
 
 Attribution:
 
 > Tanzil Quran Text (Uthmani, Version 1.1)
+>
 > Copyright (C) 2007-2026 Tanzil Project
+>
 > License: Creative Commons Attribution 3.0
 
-The Quran text may be copied and distributed verbatim, but it must not be
-changed. The Tanzil source must be clearly identified and linked. The complete
-copyright and terms-of-use block is retained at the beginning of
-`quran-data/quran-uthmani.xml`.
+The Quran text must not be changed. Tanzil must be identified as the source
+when the text is copied or distributed.
 
 - Source: https://tanzil.net/
-- License terms: https://tanzil.net/docs/Text_License
-- License: https://creativecommons.org/licenses/by/3.0/
+- Text license: https://tanzil.net/docs/Text_License
+- CC BY 3.0: https://creativecommons.org/licenses/by/3.0/
 
-## QPC V2 Mushaf glyph layout
+The Quran database is not relicensed under Wirdy's MIT license.
 
-Files:
+## Mushaf Layout Data
 
-- `resources/mushaf-layout.db`
+Bundled file:
 
-Sources:
+- `assets/databases/mushaf-layout.db`
 
-- Quran.com API v4: https://api.quran.com/api/v4
+The upstream source identifies the Mushaf glyph layout as originating from the
+Quran.com API v4 / Quran Foundation developer platform.
+
+- API: https://api.quran.com/api/v4
 - Developer terms: https://api-docs.quran.foundation/legal/developer-terms/
 
-The glyph layout database is not licensed under this project's MIT license.
-Quran Foundation content remains governed by its own developer terms. The
-database is used only as the page-rendering layer; `resources/quran.db` remains
-the source of truth for Quran text and application logic.
+Quran Foundation content remains governed by its own terms. The layout database
+is used as a rendering layer and is not relicensed under Wirdy's MIT license.
 
-## QPC V2 Quran Fonts
+## Tafsir Databases
 
-Wird Desktop includes the QPC V2 page-by-page Quran fonts for rendering the
-Madinah Mushaf.
+Bundled files:
 
-- Files: `public/qpc-v2/p1.woff` through `public/qpc-v2/p604.woff`
-- Resource name: QPC V2 Font
-- Font model: Page-by-page glyph-based Quran font
-- Number of page fonts: 604
-- Original developer: King Fahd Complex for the Printing of the Holy Quran
-- Calligraphy basis: Usman Taha
-- Distribution source: Quranic Universal Library (QUL), developed by Tarteel
-- Resource page: https://qul.tarteel.ai/resources/font/249
-- QUL FAQ: https://qul.tarteel.ai/faq
-- Format included in Wird Desktop: WOFF
+- `assets/tafsir/ar-tafseer-al-qurtubi.db`
+- `assets/tafsir/ar-tafseer-al-saddi.db`
+- `assets/tafsir/ar-tafsir-al-tabari.db`
+- `assets/tafsir/ar-tafsir-ibn-kathir.db`
+- `assets/tafsir/ar-tafsir-muyassar.db`
 
-These font files are third-party resources. They are not licensed under the Wird
-Desktop source-code license, and the project does not claim ownership of them.
-They are included solely for rendering Quran pages in the application. The QUL
-resource page makes the font available for download and application use, but it
-does not state an MIT, OFL, Apache, or other open-source software license for the
-font files. See `LICENSE_SCOPE.md` and `public/qpc-v2/NOTICE.md`.
+These databases were carried over from the upstream Wird source set. The texts
+and database contents remain attributed to their respective authors, editors,
+publishers, source projects, and rights holders. They are not relicensed under
+Wirdy's MIT license.
 
-### إشعار خطوط QPC V2
+The upstream repository does not include a specific open-source license for
+each bundled Tafsir database. Anyone preparing a public or commercial binary
+must verify the provenance and redistribution terms for each database before
+distribution.
 
-يستخدم وِرد 604 خطوط منفصلة من QPC V2 لعرض صفحات مصحف المدينة. طوّر الخط مجمع
-الملك فهد لطباعة المصحف الشريف اعتمادًا على خط عثمان طه، وتم الحصول عليه من
-مكتبة القرآن الشاملة QUL المطوّرة من Tarteel. هذه الخطوط موارد طرف ثالث، ولا
-يشملها ترخيص MIT الخاص بشيفرة وِرد، ولا يدّعي المشروع ملكيتها أو يعيد ترخيصها.
+## Software Dependencies
 
-## Quran Recitation — Sheikh Saad Al-Ghamdi
+JavaScript, Expo, React Native, and native dependencies retain the licenses
+declared by their respective packages. Exact versions are recorded in
+`package-lock.json`. Review production and transitive dependency licenses when
+preparing a distributable binary.
 
-Files:
+## إشعارات الأطراف الأخرى
 
-- `public/sounds/app-open.mp3`
-- `public/sounds/pre-session.mp3`
-- `public/sounds/notification.mp3`
-- `public/sounds/session-start.mp3`
-- `public/sounds/session-completed.mp3`
-- `public/sounds/close-app.mp3`
+وِرد نسخة هاتف مقتبسة ومستوحاة من
+[مشروع Wird مفتوح المصدر](https://github.com/abu-ayesh/wird-project) المرخص
+بترخيص MIT، وقد تم الاحتفاظ بإشعار حقوق النشر والترخيص في ملف `LICENSE`.
 
-Wird Desktop includes selected Quran verse recordings recited by Sheikh Saad
-Al-Ghamdi from the **EveryAyah — Ghamadi 40kbps** collection.
-
-- Original collection: https://everyayah.com/recitations_ayat.html
-- Included use: free Quranic reminders inside the application
-- Folder notice: `public/sounds/NOTICE.md`
-
-The recordings remain attributed to the reciter and their respective rights
-holders. They are not licensed under the Wird Desktop source-code license, and
-the project claims no ownership over them. Wird Desktop does not sell the
-recordings, place them behind a paid subscription, or provide a separate Quran
-audio download service.
-
-### إشعار التلاوات القرآنية
-
-يتضمن وِرد مقاطع مختارة من تلاوة القرآن الكريم بصوت الشيخ سعد الغامدي، من
-مجموعة `Ghamadi_40kbps` المنشورة عبر EveryAyah. تبقى جميع حقوق التسجيلات
-للقارئ وأصحاب الحقوق المعنيين، ولا يشملها ترخيص MIT الخاص بشيفرة وِرد، ولا
-يدّعي المشروع ملكيتها. تُستخدم المقاطع كتذكيرات قرآنية مجانية داخل التطبيق فقط.
-
-## Software dependencies
-
-JavaScript dependencies retain the licenses declared by their respective
-packages. Their exact versions are recorded in `package-lock.json`. Review the
-license metadata of all production and build dependencies when preparing a
-distributable binary.
+لا يشمل ترخيص MIT الخاص بالشيفرة ملكية قاعدة نص القرآن من Tanzil، أو بيانات
+تخطيط المصحف من منصة Quran Foundation، أو قواعد التفاسير المرفقة. تبقى هذه
+الموارد خاضعة لحقوق وشروط مصادرها الأصلية. يجب التحقق من مصدر وترخيص كل قاعدة
+تفسير قبل نشر نسخة عامة أو تجارية من التطبيق.

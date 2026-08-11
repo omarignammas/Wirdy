@@ -16,6 +16,12 @@
   <img alt="Languages" src="https://img.shields.io/badge/Arabic_%7C_English-RTL_%7C_LTR-D6AA35" />
 </p>
 
+<p align="center">
+  <a href="PRIVACY_POLICY.md">Privacy Policy</a> ·
+  <a href="TERMS_OF_USE.md">Terms of Use</a> ·
+  <a href="THIRD_PARTY_NOTICES.md">Third-Party Notices</a>
+</p>
+
 ## Overview
 
 Wirdy adapts the complete Wird desktop reading workflow into an iOS-inspired
@@ -31,6 +37,20 @@ The repository contains both layers of the mobile product:
 
 There is no required remote API. User data stays on the device unless the user
 explicitly exports a backup.
+
+## Open-Source Foundation
+
+Wirdy is a mobile adaptation built from and inspired by the open-source
+[Wird project by abu-ayesh](https://github.com/abu-ayesh/wird-project). The
+upstream project is distributed under the MIT License, with copyright attributed
+to Mohammad Zhour. Its copyright and permission notice are preserved in this
+repository.
+
+Wirdy's Expo interface, mobile SQLite repository, local authentication flow,
+virtual iPhone simulator, and mobile interaction design adapt the upstream
+desktop experience for iOS and Android. See
+[LICENSE_SCOPE.md](LICENSE_SCOPE.md) for the boundary between project-owned
+code and bundled third-party Quran resources.
 
 ## Screenshots
 
@@ -69,6 +89,7 @@ captured from the repository's interactive virtual iPhone simulator.
 - Local onboarding, account creation, sign-in, session restoration, and
   sign-out.
 - JSON backup and restore using the native document picker and share sheet.
+- Bilingual Privacy Policy and Terms of Use available from the More tab.
 - Branded app icon, splash screen, web favicon, and browser-based iPhone
   simulator.
 
@@ -213,9 +234,12 @@ Wirdy/
 │   ├── tafsir/                     # Five bundled Tafsir SQLite sources
 │   └── wird-app-icon.png           # App icon, splash, and favicon
 ├── preview/iphone-overview.html    # Interactive browser iPhone simulator
+├── PRIVACY_POLICY.md               # English and Arabic privacy disclosures
 ├── scripts/verify-data-sources.mjs # SHA-256 source integrity verification
+├── TERMS_OF_USE.md                 # English and Arabic app terms
 └── src/
     ├── AuthFlow.tsx                # Onboarding, sign-up, and sign-in
+    ├── legal-content.ts             # In-app bilingual legal content
     ├── locales.ts                  # Arabic and English product copy
     └── services/
         ├── auth-service.ts         # SecureStore account/session repository
@@ -226,6 +250,10 @@ Wirdy/
 
 - Reading history, plans, settings, and progress are stored locally.
 - Backups are user-initiated JSON files and are not uploaded by the app.
+- The current build contains no advertising, analytics, tracking SDK, remote
+  account, or cloud synchronization service.
+- Review the [Privacy Policy](PRIVACY_POLICY.md) and
+  [Terms of Use](TERMS_OF_USE.md) before distributing the app.
 - Notification delivery and background behavior should be validated on a
   physical iOS and Android device before a production release.
 - Configure production bundle identifiers, signing, notification permission
@@ -240,7 +268,9 @@ integrity verification.
 ## License
 
 Project-owned source code and documentation are provided under the
-[MIT License](LICENSE). Quran text, Mushaf layout data, Tafsir databases, and
-other third-party resources remain subject to their original terms. Review
+[MIT License](LICENSE). Wirdy preserves attribution to the upstream
+[abu-ayesh/wird-project](https://github.com/abu-ayesh/wird-project). Quran text,
+Mushaf layout data, Tafsir databases, and other third-party resources remain
+subject to their original terms. Review
 [LICENSE_SCOPE.md](LICENSE_SCOPE.md) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
