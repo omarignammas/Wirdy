@@ -26,11 +26,15 @@ import { copy, type Language } from './src/locales'
 import { AuthFlow } from './src/AuthFlow'
 import { getCurrentProfile, signOut, type WirdProfile } from './src/services/auth-service'
 import {
+  completeMobileKhatmaPart,
   completeMobileSession,
+  createMobileKhatmaGroup,
   createBackupPayload,
   getQuranPage,
   initializeMobileBackend,
   loadAppState,
+  joinMobileKhatma,
+  loadMobileKhatmaDetail,
   loadMobileSnapshot,
   pauseMobileSession,
   postponeMobileSession,
@@ -39,6 +43,8 @@ import {
   saveMobilePlan,
   startMobileSession,
   type BackendStatus,
+  type MobileKhatmaDetail,
+  type MobileKhatmaGroup,
   type MobileSession,
   type MobileSessionStatus,
   type MobileSnapshot,
@@ -47,10 +53,12 @@ import {
 } from './src/services/mobile-backend'
 
 type IconName = ComponentProps<typeof Ionicons>['name']
-type TabId = 'home' | 'reader' | 'sessions' | 'stats' | 'more'
-type MoreRoute = 'main' | 'settings' | 'plan' | 'backup' | 'about'
+type TabId = 'home' | 'reader' | 'khatmas' | 'stats' | 'more'
+type MoreRoute = 'main' | 'sessions' | 'settings' | 'plan' | 'backup' | 'about'
 type SessionStatus = MobileSessionStatus
 type SessionFilter = 'today' | 'upcoming' | 'history' | 'all'
+type KhatmaFilter = 'active' | 'completed' | 'invites'
+type KhatmaSheetMode = 'create' | 'join'
 
 type WirdSession = {
   id: number
@@ -126,7 +134,7 @@ const quranVerses = [
 const tabItems: Array<{ id: TabId; icon: IconName; activeIcon: IconName }> = [
   { id: 'home', icon: 'home-outline', activeIcon: 'home' },
   { id: 'reader', icon: 'book-outline', activeIcon: 'book' },
-  { id: 'sessions', icon: 'calendar-outline', activeIcon: 'calendar' },
+  { id: 'khatmas', icon: 'people-outline', activeIcon: 'people' },
   { id: 'stats', icon: 'bar-chart-outline', activeIcon: 'bar-chart' },
   { id: 'more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle' },
 ]
@@ -213,6 +221,9 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
   const [jumpPage, setJumpPage] = useState('32')
   const [selectedWeekDay, setSelectedWeekDay] = useState(weekly[6])
   const [sessionFilter, setSessionFilter] = useState<SessionFilter>('today')
+  const [khatmas, setKhatmas] = useState<MobileKhatmaGroup[]>([])
+  const [selectedKhatma, setSelectedKhatma] = useState<MobileKhatmaDetail | null>(null)
+  const [khatmaMessage, setKhatmaMessage] = useState<string | null>(null)
   const [editingSession, setEditingSession] = useState<WirdSession | null>(null)
   const [backupMessage, setBackupMessage] = useState<string | null>(null)
   const [fontSize, setFontSize] = useState(28)
@@ -253,6 +264,7 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
     setProgressGlobalAyah(snapshot.progress.currentGlobalAyah)
     setPlanStartPage(snapshot.plan.startPage)
     setStatistics(snapshot.statistics)
+    setKhatmas(snapshot.khatmas)
     const mappedWeek = weekly.map((day, index) => ({ ...day, minutes: snapshot.statistics.weeklyTrend[index]?.minutes ?? 0 }))
     setWeekData(mappedWeek)
     setSelectedWeekDay(mappedWeek.at(-1) ?? mappedWeek[0])
@@ -374,6 +386,41 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
     setTimeout(() => setBackupMessage(null), 2600)
   }
 
+  function showKhatmaMessage(message: string) {
+    setKhatmaMessage(message)
+    setTimeout(() => setKhatmaMessage(null), 2400)
+  }
+
+  async function openKhatma(group: MobileKhatmaGroup) {
+    setSelectedKhatma(await loadMobileKhatmaDetail(group.id))
+  }
+
+  async function createKhatma(input: { nameAr: string; nameEn: string; daysRemaining: number; ownerName: string }) {
+    const detail = await createMobileKhatmaGroup(input)
+    setSelectedKhatma(detail)
+    setKhatmas((await loadMobileSnapshot()).khatmas)
+    showKhatmaMessage(t.khatmaCreated)
+  }
+
+  async function joinKhatma(inviteCode: string, displayName: string) {
+    try {
+      const detail = await joinMobileKhatma(inviteCode, displayName)
+      setSelectedKhatma(detail)
+      setKhatmas((await loadMobileSnapshot()).khatmas)
+      showKhatmaMessage(t.khatmaJoined)
+    } catch {
+      showKhatmaMessage(t.invalidInvite)
+      throw new Error('Invalid invite')
+    }
+  }
+
+  async function completeKhatmaPart(group: MobileKhatmaDetail) {
+    const detail = await completeMobileKhatmaPart(group.id, initialProfile.name)
+    setSelectedKhatma(detail)
+    setKhatmas((await loadMobileSnapshot()).khatmas)
+    showKhatmaMessage(t.khatmaPartCompleted)
+  }
+
   function changeTab(next: TabId) {
     setTab(next)
     if (next !== 'more') setMoreRoute('main')
@@ -385,7 +432,7 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
       <View style={styles.app}>
         <AppHeader
           language={language}
-          title={tab === 'home' ? initialProfile.name : tab === 'reader' ? t.quran : tab === 'sessions' ? t.sessionsTitle : tab === 'stats' ? t.stats : t.moreTitle}
+          title={tab === 'home' ? initialProfile.name : tab === 'reader' ? t.quran : tab === 'khatmas' ? t.myKhatmas : tab === 'stats' ? t.stats : t.moreTitle}
           kicker={tab === 'home' ? t.greeting : t.appName}
           notificationVisible={notificationVisible}
           styles={styles}
@@ -398,9 +445,9 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
 
         {tab === 'home' && <HomeScreen t={t} language={language} styles={styles} palette={palette} progress={progress} nextSession={nextSession} sessions={sessions} planSessions={planSessions} statistics={statistics} days={weekData} selectedDay={selectedWeekDay} onSelectDay={setSelectedWeekDay} onStart={startSession} onOpenReader={() => changeTab('reader')} />}
         {tab === 'reader' && <ReaderScreen t={t} language={language} styles={styles} palette={palette} page={readerPage} verses={pageVerses} fontSize={fontSize} activeSession={activeSession} elapsed={elapsed} selectedVerse={selectedVerse} bookmarks={bookmarks} ayahNumbers={ayahNumbers} onSelectVerse={setSelectedVerse} onPageChange={setReaderPage} onStart={() => nextSession && startSession(nextSession)} onPause={async () => { if (activeSession) applySnapshot(await pauseMobileSession(activeSession.id)); changeTab('home') }} onOpenSheet={setReaderSheet} onToggleBookmark={() => setBookmarks((current) => current.includes(selectedVerse) ? current.filter((item) => item !== selectedVerse) : [selectedVerse, ...current])} />}
-        {tab === 'sessions' && <SessionsScreen t={t} language={language} styles={styles} palette={palette} sessions={sessions} filter={sessionFilter} onFilter={setSessionFilter} onStart={startSession} onPostpone={setPostponing} onManage={() => { setMoreRoute('plan'); setTab('more') }} />}
+        {tab === 'khatmas' && <KhatmasScreen t={t} language={language} styles={styles} palette={palette} profile={initialProfile} groups={khatmas} selected={selectedKhatma} message={khatmaMessage} onSelect={openKhatma} onBack={() => setSelectedKhatma(null)} onCreate={createKhatma} onJoin={joinKhatma} onCompletePart={completeKhatmaPart} />}
         {tab === 'stats' && <StatsScreen t={t} language={language} styles={styles} palette={palette} progress={progress} statistics={statistics} days={weekData} selectedDay={selectedWeekDay} onSelectDay={setSelectedWeekDay} />}
-        {tab === 'more' && <MoreScreen route={moreRoute} setRoute={setMoreRoute} t={t} profile={initialProfile} backendStatus={backendStatus} onSignOut={onSignOut} language={language} setLanguage={setLanguage} styles={styles} palette={palette} darkMode={darkMode} setDarkMode={setDarkMode} sessions={sessions} setSessions={setSessions} planSessions={planSessions} setPlanSessions={setPlanSessions} editingSession={editingSession} setEditingSession={setEditingSession} currentPage={readerPage} planStartPage={planStartPage} onSavePlan={savePlan} fontSize={fontSize} setFontSize={setFontSize} mushafZoom={mushafZoom} setMushafZoom={setMushafZoom} pageMode={pageMode} setPageMode={setPageMode} fitMode={fitMode} setFitMode={setFitMode} ayahNumbers={ayahNumbers} setAyahNumbers={setAyahNumbers} spiritualCards={spiritualCards} setSpiritualCards={setSpiritualCards} smartSuggestions={smartSuggestions} setSmartSuggestions={setSmartSuggestions} notifications={notifications} setNotifications={setNotifications} spiritualAudio={spiritualAudio} setSpiritualAudio={setSpiritualAudio} preSessionAlert={preSessionAlert} setPreSessionAlert={setPreSessionAlert} backupMessage={backupMessage} onBackup={runBackup} />}
+        {tab === 'more' && <MoreScreen route={moreRoute} setRoute={setMoreRoute} t={t} profile={initialProfile} backendStatus={backendStatus} onSignOut={onSignOut} language={language} setLanguage={setLanguage} styles={styles} palette={palette} darkMode={darkMode} setDarkMode={setDarkMode} sessions={sessions} setSessions={setSessions} sessionFilter={sessionFilter} setSessionFilter={setSessionFilter} onStartSession={startSession} onPostponeSession={setPostponing} planSessions={planSessions} setPlanSessions={setPlanSessions} editingSession={editingSession} setEditingSession={setEditingSession} currentPage={readerPage} planStartPage={planStartPage} onSavePlan={savePlan} fontSize={fontSize} setFontSize={setFontSize} mushafZoom={mushafZoom} setMushafZoom={setMushafZoom} pageMode={pageMode} setPageMode={setPageMode} fitMode={fitMode} setFitMode={setFitMode} ayahNumbers={ayahNumbers} setAyahNumbers={setAyahNumbers} spiritualCards={spiritualCards} setSpiritualCards={setSpiritualCards} smartSuggestions={smartSuggestions} setSmartSuggestions={setSmartSuggestions} notifications={notifications} setNotifications={setNotifications} spiritualAudio={spiritualAudio} setSpiritualAudio={setSpiritualAudio} preSessionAlert={preSessionAlert} setPreSessionAlert={setPreSessionAlert} backupMessage={backupMessage} onBackup={runBackup} />}
 
         <TabBar active={tab} t={t} styles={styles} palette={palette} onChange={changeTab} />
 
@@ -479,7 +526,81 @@ function ReaderScreen({ t, language, styles, palette, page, verses, fontSize, ac
   </View>
 }
 
-function SessionsScreen({ t, language, styles, palette, sessions, filter, onFilter, onStart, onPostpone, onManage }: { t: typeof copy.ar | typeof copy.en; language: Language; styles: Styles; palette: Palette; sessions: WirdSession[]; filter: SessionFilter; onFilter: (filter: SessionFilter) => void; onStart: (session: WirdSession) => void; onPostpone: (session: WirdSession) => void; onManage: () => void }) {
+function KhatmasScreen({ t, language, styles, palette, profile, groups, selected, message, onSelect, onBack, onCreate, onJoin, onCompletePart }: { t: typeof copy.ar | typeof copy.en; language: Language; styles: Styles; palette: Palette; profile: WirdProfile; groups: MobileKhatmaGroup[]; selected: MobileKhatmaDetail | null; message: string | null; onSelect: (group: MobileKhatmaGroup) => Promise<void>; onBack: () => void; onCreate: (input: { nameAr: string; nameEn: string; daysRemaining: number; ownerName: string }) => Promise<void>; onJoin: (inviteCode: string, displayName: string) => Promise<void>; onCompletePart: (group: MobileKhatmaDetail) => Promise<void> }) {
+  const [filter, setFilter] = useState<KhatmaFilter>('active')
+  const [search, setSearch] = useState('')
+  const [sheetMode, setSheetMode] = useState<KhatmaSheetMode | null>(null)
+  const filtered = groups.filter((group) => {
+    const name = language === 'ar' ? group.nameAr : group.nameEn
+    return name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) && (filter === 'invites' ? false : group.status === filter)
+  })
+
+  if (selected) {
+    const percent = Math.round(selected.completedParts / selected.totalParts * 100)
+    const name = language === 'ar' ? selected.nameAr : selected.nameEn
+    const schedule = language === 'ar' ? selected.scheduleAr : selected.scheduleEn
+    return <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.khatmaDetailHeader}><Pressable accessibilityLabel={t.back} style={styles.headerButton} onPress={onBack}><Ionicons name={language === 'ar' ? 'chevron-forward' : 'chevron-back'} size={20} color={palette.primary} /></Pressable><View style={styles.pageIntroCopy}><Text style={styles.pageIntroTitle}>{name}</Text><Text style={styles.pageIntroText}>{t.groupKhatma} · {selected.memberCount} {t.members}</Text></View><Pressable accessibilityLabel={t.shareInvite} style={styles.headerButton} onPress={() => void Share.share({ title: name, message: `${name}\n${t.inviteCode}: ${selected.inviteCode}` })}><Ionicons name="share-outline" size={20} color={palette.primary} /></Pressable></View>
+      <View style={styles.nextStrip}><View><Text style={styles.smallMuted}>{t.nextSession}</Text><Text style={styles.nextStripTitle}>{t.fajrWird}</Text></View><View style={styles.timeChip}><Ionicons name="time-outline" size={16} color={palette.primary} /><Text style={styles.timeChipText}>05:15</Text></View></View>
+      <View style={styles.khatmaHero}>
+        <View style={styles.heroTop}><View><Text style={styles.heroKicker}>{t.groupKhatma}</Text><Text style={styles.heroTitle}>{name}</Text></View><View style={styles.partChip}><Text style={styles.partChipText}>{selected.completedParts}/30 {t.part}</Text></View></View>
+        <View style={styles.khatmaSchedule}><Ionicons name="calendar-outline" size={15} color="#FFFFFF" /><Text style={styles.khatmaScheduleText}>{schedule}</Text></View>
+        <View style={styles.heroProgress}><CircularProgress value={percent} size={118} strokeWidth={10} trackColor="rgba(255,255,255,0.18)" progressColor="#FFFFFF" textColor="#FFFFFF" label={t.complete} labelColor="rgba(255,255,255,0.66)" /><View style={styles.heroPosition}><Text style={styles.heroSurah}>{t.surahAlFurqan}</Text><Text style={styles.heroMeta}>{t.page} 362 · {t.part} 19</Text></View></View>
+        <View style={styles.heroActions}><Pressable disabled={selected.completedParts >= 30} style={[styles.heroPrimary, selected.completedParts >= 30 && { opacity: 0.72 }]} onPress={() => void onCompletePart(selected)}><Ionicons name="checkmark-circle-outline" size={19} color={palette.primaryDeep} /><Text style={styles.heroPrimaryText}>{selected.completedParts >= 30 ? t.completedKhatmas : t.completeNextJuz}</Text></Pressable><Pressable accessibilityLabel={t.openMushaf} style={styles.heroGhost}><Ionicons name="book-outline" size={21} color="#FFFFFF" /></Pressable></View>
+        <Pressable style={styles.khatmaInvite} onPress={() => void Share.share({ title: name, message: `${name}\n${t.inviteCode}: ${selected.inviteCode}` })}><Ionicons name="person-add-outline" size={15} color="rgba(255,255,255,0.76)" /><Text style={styles.khatmaInviteText}>{t.inviteCode}: {selected.inviteCode}</Text></Pressable>
+      </View>
+      <SectionHeader title={t.todayGroupSessions} action={t.all} styles={styles} />
+      <KhatmaSessionRow icon="sunny-outline" title={t.fajrWird} time="05:15" duration={`20 ${t.minutes}`} styles={styles} palette={palette} />
+      <KhatmaSessionRow icon="partly-sunny-outline" title={t.dhuhrWird} time="13:20" duration={`15 ${t.minutes}`} styles={styles} palette={palette} />
+      <SectionHeader title={t.groupProgress} action={`${selected.memberCount} ${t.members}`} styles={styles} />
+      <View style={styles.memberStack}>{selected.members.slice(0, 6).map((member) => <View key={member.id} style={styles.memberRow}><View style={styles.memberAvatar}><Text style={styles.memberAvatarText}>{member.avatarInitial}</Text></View><View style={styles.memberCopy}><Text style={styles.cardTitle}>{member.displayName}</Text><Text style={styles.cardMeta}>{member.role === 'owner' ? (language === 'ar' ? 'منظّم المجموعة' : 'Group organizer') : `${member.completedParts} ${t.part}`}</Text></View>{member.role === 'owner' && <Ionicons name="key-outline" size={17} color={palette.gold} />}</View>)}</View>
+      {message && <View style={styles.successBanner}><Ionicons name="checkmark-circle" size={19} color={palette.success} /><Text style={styles.successText}>{message}</Text></View>}
+    </ScrollView>
+  }
+
+  return <>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.khatmaListHeader}><View style={styles.pageIntroCopy}><Text style={styles.khatmaListKicker}>{t.khatmasSubtitle}</Text><Text style={styles.khatmaListTitle}>{t.myKhatmas}</Text></View><Pressable accessibilityLabel={t.createKhatma} style={styles.khatmaAdd} onPress={() => setSheetMode('create')}><Ionicons name="add" size={28} color="#FFFFFF" /></Pressable></View>
+      <View style={styles.searchField}><Ionicons name="search-outline" size={19} color={palette.muted} /><TextInput value={search} onChangeText={setSearch} placeholder={t.searchKhatmas} placeholderTextColor={palette.muted} style={styles.searchInput} /></View>
+      <Segmented value={filter} options={[["active", `${t.activeKhatmas} (${groups.filter((group) => group.status === 'active').length})`], ["completed", t.completedKhatmas], ["invites", t.invitations]]} styles={styles} onChange={setFilter} />
+      {filtered.map((group) => {
+        const percent = Math.round(group.completedParts / group.totalParts * 100)
+        return <Pressable key={group.id} style={styles.khatmaCard} onPress={() => void onSelect(group)}><View style={styles.khatmaCardTop}><View style={styles.daysChip}><Ionicons name="time-outline" size={14} color={palette.primary} /><Text style={styles.daysChipText}>{group.daysRemaining} {t.daysRemaining}</Text></View><View style={styles.khatmaCardCopy}><Text style={styles.khatmaCardTitle}>{language === 'ar' ? group.nameAr : group.nameEn}</Text><Text style={styles.cardMeta}>{group.memberCount} {t.members}</Text></View></View><View style={styles.khatmaProgressRow}><Text style={styles.khatmaParts}>{group.completedParts}/30 {t.part}</Text><View style={styles.khatmaTrack}><View style={[styles.khatmaFill, { width: `${percent}%` }]} /></View></View></Pressable>
+      })}
+      {!filtered.length && <View style={styles.khatmaEmpty}><Ionicons name={filter === 'invites' ? 'mail-open-outline' : 'people-outline'} size={29} color={palette.primary} /><Text style={styles.emptyText}>{t.noKhatmas}</Text>{filter === 'invites' && <Pressable style={styles.modalPrimary} onPress={() => setSheetMode('join')}><Text style={styles.modalPrimaryText}>{t.joinKhatma}</Text></Pressable>}</View>}
+      {message && <View style={styles.successBanner}><Ionicons name="checkmark-circle" size={19} color={palette.success} /><Text style={styles.successText}>{message}</Text></View>}
+    </ScrollView>
+    <KhatmaFormSheet mode={sheetMode} setMode={setSheetMode} t={t} profile={profile} styles={styles} palette={palette} onCreate={onCreate} onJoin={onJoin} />
+  </>
+}
+
+function KhatmaFormSheet({ mode, setMode, t, profile, styles, palette, onCreate, onJoin }: { mode: KhatmaSheetMode | null; setMode: (mode: KhatmaSheetMode | null) => void; t: typeof copy.ar | typeof copy.en; profile: WirdProfile; styles: Styles; palette: Palette; onCreate: (input: { nameAr: string; nameEn: string; daysRemaining: number; ownerName: string }) => Promise<void>; onJoin: (inviteCode: string, displayName: string) => Promise<void> }) {
+  const [nameAr, setNameAr] = useState('')
+  const [nameEn, setNameEn] = useState('')
+  const [days, setDays] = useState('30')
+  const [invite, setInvite] = useState('')
+  const [owner, setOwner] = useState(profile.name)
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    if (!mode || busy || !owner.trim()) return
+    if (mode === 'create' && (!nameAr.trim() || !nameEn.trim())) return
+    if (mode === 'join' && !invite.trim()) return
+    setBusy(true)
+    try {
+      if (mode === 'create') await onCreate({ nameAr, nameEn, daysRemaining: Number(days) || 30, ownerName: owner })
+      else await onJoin(invite, owner)
+      setMode(null); setNameAr(''); setNameEn(''); setInvite('')
+    } catch { /* The localized error banner is owned by the parent screen. */ }
+    finally { setBusy(false) }
+  }
+  return <Sheet visible={Boolean(mode)} title={mode === 'join' ? t.joinKhatma : t.createKhatma} subtitle={t.khatmasSubtitle} styles={styles} onClose={() => setMode(null)}><Segmented value={mode ?? 'create'} options={[["create", t.createKhatma], ["join", t.joinKhatma]]} styles={styles} onChange={setMode} /><View style={styles.formFields}>{mode !== 'join' && <><Text style={styles.fieldLabel}>{t.groupNameArabic}</Text><TextInput value={nameAr} onChangeText={setNameAr} placeholder="أصدقاء الخير" placeholderTextColor={palette.muted} style={styles.textInput} textAlign="right" /><Text style={styles.fieldLabel}>{t.groupNameEnglish}</Text><TextInput value={nameEn} onChangeText={setNameEn} placeholder="Friends of Good" placeholderTextColor={palette.muted} style={styles.textInput} /><Text style={styles.fieldLabel}>{t.daysToComplete}</Text><TextInput value={days} onChangeText={setDays} keyboardType="number-pad" placeholder="30" placeholderTextColor={palette.muted} style={styles.textInput} /></>}{mode === 'join' && <><Text style={styles.fieldLabel}>{t.inviteCode}</Text><TextInput value={invite} onChangeText={(value) => setInvite(value.toUpperCase())} autoCapitalize="characters" placeholder="KHAIR20" placeholderTextColor={palette.muted} style={styles.textInput} /></>}<Text style={styles.fieldLabel}>{t.ownerName}</Text><TextInput value={owner} onChangeText={setOwner} placeholder={profile.name} placeholderTextColor={palette.muted} style={styles.textInput} /><Pressable disabled={busy} style={[styles.modalPrimary, { marginTop: 13, opacity: busy ? 0.65 : 1 }]} onPress={() => void submit()}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.modalPrimaryText}>{mode === 'join' ? t.joinKhatma : t.createKhatma}</Text>}</Pressable></View></Sheet>
+}
+
+function KhatmaSessionRow({ icon, title, time, duration, styles, palette }: { icon: IconName; title: string; time: string; duration: string; styles: Styles; palette: Palette }) {
+  return <View style={styles.khatmaSessionRow}><View style={styles.khatmaSessionIcon}><Ionicons name={icon} size={20} color={palette.primary} /></View><View style={styles.khatmaSessionCopy}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardMeta}>{time} · {duration}</Text></View><Ionicons name="chevron-forward" size={17} color={palette.muted} /></View>
+}
+
+function SessionsScreen({ t, language, styles, palette, sessions, filter, onFilter, onStart, onPostpone, onManage, onBack }: { t: typeof copy.ar | typeof copy.en; language: Language; styles: Styles; palette: Palette; sessions: WirdSession[]; filter: SessionFilter; onFilter: (filter: SessionFilter) => void; onStart: (session: WirdSession) => void; onPostpone: (session: WirdSession) => void; onManage: () => void; onBack?: () => void }) {
   const today = localDateKey()
   const todaySessions = sessions.filter((session) => !session.scheduledDate || session.scheduledDate === today)
   const visible = sessions.filter((session) => filter === 'all' || filter === 'today' && (!session.scheduledDate || session.scheduledDate === today) || filter === 'upcoming' && ['scheduled', 'paused', 'in_progress'].includes(session.status) || filter === 'history' && ['completed', 'ended_early', 'skipped'].includes(session.status))
@@ -487,7 +608,7 @@ function SessionsScreen({ t, language, styles, palette, sessions, filter, onFilt
   const remaining = todaySessions.filter((session) => ['scheduled', 'paused', 'in_progress'].includes(session.status)).length
   const readingMinutes = Math.floor(todaySessions.reduce((sum, session) => sum + (session.activeSeconds ?? 0), 0) / 60)
   return <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-    <View style={styles.pageIntro}><View style={styles.pageIntroIcon}><Ionicons name="calendar-outline" size={22} color={palette.primary} /></View><View style={styles.pageIntroCopy}><Text style={styles.pageIntroTitle}>{t.sessionsTitle}</Text><Text style={styles.pageIntroText}>{t.sessionsSubtitle}</Text></View><Pressable accessibilityLabel={t.managePlan} style={styles.headerButton} onPress={onManage}><Ionicons name="options-outline" size={20} color={palette.primary} /></Pressable></View>
+    <View style={styles.pageIntro}>{onBack ? <Pressable accessibilityLabel={t.back} style={styles.headerButton} onPress={onBack}><Ionicons name={language === 'ar' ? 'chevron-forward' : 'chevron-back'} size={20} color={palette.primary} /></Pressable> : <View style={styles.pageIntroIcon}><Ionicons name="calendar-outline" size={22} color={palette.primary} /></View>}<View style={styles.pageIntroCopy}><Text style={styles.pageIntroTitle}>{t.sessionsTitle}</Text><Text style={styles.pageIntroText}>{t.sessionsSubtitle}</Text></View><Pressable accessibilityLabel={t.managePlan} style={styles.headerButton} onPress={onManage}><Ionicons name="options-outline" size={20} color={palette.primary} /></Pressable></View>
     <View style={styles.summaryGrid}><SummaryItem label={t.todaySessions} value={String(todaySessions.length)} styles={styles} /><SummaryItem label={t.completed} value={String(completed)} styles={styles} /><SummaryItem label={t.remaining} value={String(remaining)} styles={styles} /><SummaryItem label={t.readingTime} value={`${readingMinutes} ${t.minutes}`} styles={styles} /></View>
     <Segmented value={filter} options={[['today', t.today], ['upcoming', t.upcoming], ['history', t.history], ['all', t.all]]} styles={styles} onChange={onFilter} />
     {visible.map((session) => <View style={styles.sessionCard} key={session.id}><View style={styles.sessionTime}><Text style={styles.sessionTimeValue}>{session.time}</Text><Text style={styles.sessionTimeLabel}>{t.today}</Text></View><View style={styles.sessionBody}><View style={styles.sessionTitleRow}><Text style={styles.sessionTitle}>{sessionName(session, language)}</Text><StatusPill status={session.status} t={t} styles={styles} /></View><Text style={styles.cardMeta}>{session.duration} {t.minutes} · {t.page} {session.page}</Text><View style={styles.inlineActions}>{['scheduled', 'paused', 'in_progress'].includes(session.status) && <SmallButton label={session.status === 'scheduled' ? t.start : t.resume} primary styles={styles} onPress={() => onStart(session)} />}{session.status === 'scheduled' && <SmallButton label={t.postpone} styles={styles} onPress={() => onPostpone(session)} />}</View></View></View>)}
@@ -511,8 +632,9 @@ function StatsScreen({ t, language, styles, palette, progress, statistics, days,
   </ScrollView>
 }
 
-function MoreScreen(props: { route: MoreRoute; setRoute: (route: MoreRoute) => void; t: typeof copy.ar | typeof copy.en; profile: WirdProfile; backendStatus: BackendStatus; onSignOut: () => Promise<void>; language: Language; setLanguage: (lang: Language) => void; styles: Styles; palette: Palette; darkMode: boolean; setDarkMode: (value: boolean) => void; sessions: WirdSession[]; setSessions: Dispatch<SetStateAction<WirdSession[]>>; planSessions: WirdSession[]; setPlanSessions: Dispatch<SetStateAction<WirdSession[]>>; editingSession: WirdSession | null; setEditingSession: (session: WirdSession | null) => void; currentPage: number; planStartPage: number; onSavePlan: (sessions: WirdSession[]) => Promise<void>; fontSize: number; setFontSize: (value: number) => void; mushafZoom: number; setMushafZoom: (value: number) => void; pageMode: 'auto' | 'single' | 'spread'; setPageMode: (value: 'auto' | 'single' | 'spread') => void; fitMode: 'height' | 'width' | 'custom'; setFitMode: (value: 'height' | 'width' | 'custom') => void; ayahNumbers: boolean; setAyahNumbers: (value: boolean) => void; spiritualCards: boolean; setSpiritualCards: (value: boolean) => void; smartSuggestions: boolean; setSmartSuggestions: (value: boolean) => void; notifications: boolean; setNotifications: (value: boolean) => void; spiritualAudio: boolean; setSpiritualAudio: (value: boolean) => void; preSessionAlert: boolean; setPreSessionAlert: (value: boolean) => void; backupMessage: string | null; onBackup: (action: 'create' | 'restore') => Promise<void> }) {
+function MoreScreen(props: { route: MoreRoute; setRoute: (route: MoreRoute) => void; t: typeof copy.ar | typeof copy.en; profile: WirdProfile; backendStatus: BackendStatus; onSignOut: () => Promise<void>; language: Language; setLanguage: (lang: Language) => void; styles: Styles; palette: Palette; darkMode: boolean; setDarkMode: (value: boolean) => void; sessions: WirdSession[]; setSessions: Dispatch<SetStateAction<WirdSession[]>>; sessionFilter: SessionFilter; setSessionFilter: (filter: SessionFilter) => void; onStartSession: (session: WirdSession) => void; onPostponeSession: (session: WirdSession) => void; planSessions: WirdSession[]; setPlanSessions: Dispatch<SetStateAction<WirdSession[]>>; editingSession: WirdSession | null; setEditingSession: (session: WirdSession | null) => void; currentPage: number; planStartPage: number; onSavePlan: (sessions: WirdSession[]) => Promise<void>; fontSize: number; setFontSize: (value: number) => void; mushafZoom: number; setMushafZoom: (value: number) => void; pageMode: 'auto' | 'single' | 'spread'; setPageMode: (value: 'auto' | 'single' | 'spread') => void; fitMode: 'height' | 'width' | 'custom'; setFitMode: (value: 'height' | 'width' | 'custom') => void; ayahNumbers: boolean; setAyahNumbers: (value: boolean) => void; spiritualCards: boolean; setSpiritualCards: (value: boolean) => void; smartSuggestions: boolean; setSmartSuggestions: (value: boolean) => void; notifications: boolean; setNotifications: (value: boolean) => void; spiritualAudio: boolean; setSpiritualAudio: (value: boolean) => void; preSessionAlert: boolean; setPreSessionAlert: (value: boolean) => void; backupMessage: string | null; onBackup: (action: 'create' | 'restore') => Promise<void> }) {
   const { route, setRoute, t, language, setLanguage, styles, palette } = props
+  if (route === 'sessions') return <SessionsScreen t={t} language={language} styles={styles} palette={palette} sessions={props.sessions} filter={props.sessionFilter} onFilter={props.setSessionFilter} onStart={props.onStartSession} onPostpone={props.onPostponeSession} onManage={() => setRoute('plan')} onBack={() => setRoute('main')} />
   if (route === 'settings') return <SettingsScreen {...props} />
   if (route === 'plan') return <PlanScreen {...props} />
   if (route === 'backup') return <BackupScreen t={t} styles={styles} palette={palette} backupMessage={props.backupMessage} onBack={() => setRoute('main')} onBackup={props.onBackup} />
@@ -520,6 +642,7 @@ function MoreScreen(props: { route: MoreRoute; setRoute: (route: MoreRoute) => v
   return <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.profileCard}><View style={styles.profileLarge}><Text style={styles.profileLargeText}>{props.profile.name.slice(0, 1).toUpperCase()}</Text></View><View style={styles.profileCopy}><Text style={styles.pageIntroTitle}>{props.profile.name}</Text><Text style={styles.pageIntroText}>{props.backendStatus.ready ? `${props.backendStatus.quranAyahs} ${language === 'ar' ? `آية · ${props.backendStatus.bundledSources} مصادر سطح مكتب` : `ayahs · ${props.backendStatus.bundledSources} desktop sources`}` : (language === 'ar' ? 'المصدر المحلي غير جاهز' : 'Local source unavailable')}</Text></View></View>
     <Text style={styles.groupTitle}>{t.planAndReading}</Text>
+    <MenuRow icon="calendar-outline" title={t.sessionsTitle} styles={styles} palette={palette} onPress={() => setRoute('sessions')} />
     <MenuRow icon="calendar-outline" title={t.managePlan} styles={styles} palette={palette} onPress={() => setRoute('plan')} />
     <MenuRow icon="settings-outline" title={t.settings} styles={styles} palette={palette} onPress={() => setRoute('settings')} />
     <MenuRow icon="cloud-download-outline" title={t.backup} styles={styles} palette={palette} onPress={() => setRoute('backup')} />
@@ -595,13 +718,20 @@ function ReaderSheets({ sheet, setSheet, t, styles, palette, page, setPage, jump
 }
 
 function TabBar({ active, t, styles, palette, onChange }: { active: TabId; t: typeof copy.ar | typeof copy.en; styles: Styles; palette: Palette; onChange: (tab: TabId) => void }) {
-  const labels: Record<TabId, string> = { home: t.home, reader: t.reader, sessions: t.sessions, stats: t.stats, more: t.more }
+  const labels: Record<TabId, string> = { home: t.home, reader: t.reader, khatmas: t.khatmas, stats: t.stats, more: t.more }
   return <View style={styles.tabBar}>{tabItems.map((item) => { const selected = item.id === active; return <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={labels[item.id]} style={[styles.tabItem, selected && styles.tabItemActive]} onPress={() => onChange(item.id)}><Ionicons name={selected ? item.activeIcon : item.icon} size={selected ? 30 : 27} color={selected ? palette.primary : palette.muted} />{selected && <Text style={styles.tabLabel}>{labels[item.id]}</Text>}</Pressable> })}</View>
 }
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+
 function CircularProgress({ value, size, strokeWidth, trackColor, progressColor, textColor, label, labelColor }: { value: number; size: number; strokeWidth: number; trackColor: string; progressColor: string; textColor: string; label: string; labelColor: string }) {
   const normalized = Math.min(100, Math.max(0, value)); const radius = (size - strokeWidth) / 2; const circumference = 2 * Math.PI * radius
-  return <View accessibilityLabel={`${label} ${normalized}%`} style={{ width: size, height: size }}><Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}><Circle cx={size / 2} cy={size / 2} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="none" /><Circle cx={size / 2} cy={size / 2} r={radius} stroke={progressColor} strokeWidth={strokeWidth} strokeDasharray={`${circumference} ${circumference}`} strokeDashoffset={circumference - normalized / 100 * circumference} strokeLinecap="round" fill="none" /></Svg><View style={ringStyles.center}><Text style={[ringStyles.value, { color: textColor }]}>{normalized}%</Text><Text style={[ringStyles.label, { color: labelColor }]} numberOfLines={1}>{label}</Text></View></View>
+  const animatedValue = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    Animated.timing(animatedValue, { toValue: normalized, duration: 720, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start()
+  }, [animatedValue, normalized])
+  const offset = animatedValue.interpolate({ inputRange: [0, 100], outputRange: [circumference, 0] })
+  return <View accessibilityLabel={`${label} ${normalized}%`} style={{ width: size, height: size }}><Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}><Circle cx={size / 2} cy={size / 2} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="none" /><AnimatedCircle cx={size / 2} cy={size / 2} r={radius} stroke={progressColor} strokeWidth={strokeWidth} strokeDasharray={`${circumference} ${circumference}`} strokeDashoffset={offset} strokeLinecap="round" fill="none" /></Svg><View style={ringStyles.center}><Text style={[ringStyles.value, { color: textColor }]}>{normalized}%</Text><Text style={[ringStyles.label, { color: labelColor }]} numberOfLines={1}>{label}</Text></View></View>
 }
 
 const ringStyles = StyleSheet.create({ center: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' }, value: { fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] }, label: { fontSize: 10, fontWeight: '500', marginTop: 1, maxWidth: 70, textAlign: 'center' } })
@@ -678,6 +808,11 @@ function makeStyles(p: Palette, rtl: boolean) {
     summaryGrid: { flexDirection: row, flexWrap: 'wrap', overflow: 'hidden', marginBottom: 12, borderRadius: 17, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface }, summaryItem: { width: '50%', minHeight: 65, justifyContent: 'center', paddingHorizontal: 13, borderBottomWidth: 1, borderRightWidth: 1, borderColor: p.line }, summaryValue: { color: p.ink, fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'], textAlign: align }, summaryLabel: { color: p.muted, fontSize: 10, fontWeight: '500', textAlign: align },
     segmented: { flexDirection: row, gap: 3, padding: 3, borderRadius: 13, backgroundColor: p.elevated }, segment: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderRadius: 10 }, segmentActive: { backgroundColor: p.surface, shadowColor: p.shadow, shadowOpacity: 1, shadowRadius: 7 }, segmentText: { color: p.muted, fontSize: 10, fontWeight: '800' }, segmentTextActive: { color: p.primary },
     sessionCard: { flexDirection: row, alignItems: 'stretch', gap: 11, marginTop: 10, padding: 12, borderRadius: 17, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface }, sessionTime: { width: 62, minHeight: 69, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: p.primaryMuted }, sessionTimeValue: { color: p.primary, fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] }, sessionTimeLabel: { marginTop: 2, color: p.muted, fontSize: 9, fontWeight: '500' }, sessionBody: { flex: 1 }, sessionTitleRow: { flexDirection: row, alignItems: 'center', justifyContent: 'space-between', gap: 6 }, sessionTitle: { flex: 1, color: p.ink, fontSize: 15, fontWeight: '700', lineHeight: 22, textAlign: align }, statusPill: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9, backgroundColor: p.elevated }, statusActive: { backgroundColor: p.primaryMuted }, statusDone: { backgroundColor: p.primaryMuted }, statusText: { color: p.primary, fontSize: 9, fontWeight: '700' },
+    khatmaListHeader: { minHeight: 72, flexDirection: row, alignItems: 'center', gap: 12, marginBottom: 12 }, khatmaListKicker: { color: p.muted, fontSize: 11, fontWeight: '600', textAlign: align }, khatmaListTitle: { marginTop: 2, color: p.ink, fontSize: 27, lineHeight: 36, fontWeight: '900', textAlign: align }, khatmaAdd: { width: 52, height: 52, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 26, backgroundColor: p.primaryDeep, shadowColor: p.shadow, shadowOpacity: 1, shadowRadius: 13, shadowOffset: { width: 0, height: 7 } },
+    searchField: { minHeight: 53, flexDirection: row, alignItems: 'center', gap: 9, marginBottom: 11, paddingHorizontal: 14, borderRadius: 17, borderWidth: 1, borderColor: p.line, backgroundColor: p.elevated }, searchInput: { flex: 1, color: p.ink, fontSize: 12, textAlign: align, writingDirection: writing },
+    khatmaCard: { marginTop: 11, padding: 15, borderRadius: 18, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface }, khatmaCardTop: { flexDirection: row, alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }, khatmaCardCopy: { flex: 1 }, khatmaCardTitle: { color: p.ink, fontSize: 17, lineHeight: 25, fontWeight: '800', textAlign: align, writingDirection: writing }, daysChip: { flexDirection: row, alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 10, backgroundColor: p.primaryMuted }, daysChipText: { color: p.primary, fontSize: 9, fontWeight: '700', fontVariant: ['tabular-nums'] }, khatmaProgressRow: { flexDirection: row, alignItems: 'center', gap: 9, marginTop: 17 }, khatmaParts: { color: p.primary, fontSize: 10, fontWeight: '900', fontVariant: ['tabular-nums'] }, khatmaTrack: { flex: 1, height: 7, overflow: 'hidden', borderRadius: 4, backgroundColor: p.primaryMuted }, khatmaFill: { height: '100%', borderRadius: 4, backgroundColor: p.primary }, khatmaEmpty: { alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 190, marginTop: 12, padding: 20, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: p.line, backgroundColor: p.elevated },
+    khatmaDetailHeader: { flexDirection: row, alignItems: 'center', gap: 10, marginBottom: 12 }, khatmaHero: { marginTop: 13, padding: 16, borderRadius: 24, backgroundColor: p.primaryDeep, shadowColor: p.shadow, shadowOpacity: 1, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } }, khatmaSchedule: { alignSelf: rtl ? 'flex-end' : 'flex-start', flexDirection: row, alignItems: 'center', gap: 5, marginTop: 11, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.12)' }, khatmaScheduleText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' }, khatmaInvite: { minHeight: 37, flexDirection: row, alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 9 }, khatmaInviteText: { color: 'rgba(255,255,255,0.76)', fontSize: 10, fontWeight: '700', fontVariant: ['tabular-nums'] },
+    khatmaSessionRow: { minHeight: 72, flexDirection: row, alignItems: 'center', gap: 11, borderBottomWidth: 1, borderBottomColor: p.line }, khatmaSessionIcon: { width: 43, height: 43, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: p.primaryMuted }, khatmaSessionCopy: { flex: 1 }, memberStack: { overflow: 'hidden', paddingHorizontal: 13, borderRadius: 18, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface }, memberRow: { minHeight: 65, flexDirection: row, alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: p.line }, memberAvatar: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: p.primaryMuted }, memberAvatarText: { color: p.primary, fontSize: 12, fontWeight: '900' }, memberCopy: { flex: 1 },
     statsHero: { flexDirection: row, alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 16, borderRadius: 22, backgroundColor: p.primaryDeep }, statsHeroCopy: { flex: 1 }, statsKicker: { color: '#FFFFFF', fontSize: 19, fontWeight: '900', textAlign: align }, statsTitle: { marginTop: 5, color: 'rgba(255,255,255,0.67)', fontSize: 11, lineHeight: 18, textAlign: align, writingDirection: writing }, statsMetrics: { flexDirection: row, flexWrap: 'wrap', gap: 8, marginTop: 11 }, breakdownCard: { flexDirection: row, alignItems: 'center', justifyContent: 'space-between', marginTop: 12, padding: 15, borderRadius: 18, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface }, legendRow: { flexDirection: row, alignItems: 'center', gap: 6, marginTop: 6 }, legendDot: { width: 8, height: 8, borderRadius: 4 },
     infoRow: { flexDirection: row, alignItems: 'center', gap: 10, minHeight: 69, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: p.line }, infoCopy: { flex: 1 },
     profileCard: { flexDirection: row, alignItems: 'center', gap: 12, padding: 15, borderRadius: 18, backgroundColor: p.primaryMuted }, profileLarge: { width: 55, height: 55, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: p.primaryDeep }, profileLargeText: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' }, profileCopy: { flex: 1 }, groupTitle: { marginTop: 20, marginBottom: 8, color: p.muted, fontSize: 11, fontWeight: '700', textAlign: align, textTransform: 'uppercase' }, menuRow: { minHeight: 63, flexDirection: row, alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: p.line }, menuTitle: { flex: 1, color: p.ink, fontSize: 15, fontWeight: '700', textAlign: align }, currentPlanCard: { minHeight: 88, flexDirection: row, alignItems: 'center', gap: 10, padding: 13, borderRadius: 18, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface },

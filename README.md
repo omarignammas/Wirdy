@@ -44,6 +44,8 @@ explicitly exports a backup.
   jump, free reading, and timed sessions.
 - Session start, pause, early completion, completion, postponement, filtering,
   and history.
+- Collaborative Khatamat with searchable groups, invite codes, members,
+  automatic 30-Juz progress, group detail, and completion state.
 - Recurring plan management for one to five daily sessions.
 - Reading statistics derived from persisted session history.
 - Local onboarding, account creation, sign-in, session restoration, and
@@ -76,12 +78,21 @@ desktop-compatible data model:
 | `reading_times` | Recurring session names, times, durations, and enabled state |
 | `reading_progress` | Current Surah, Ayah, Mushaf page, and global Ayah |
 | `reading_sessions` | Scheduled and historical session lifecycle records |
+| `khatma_groups` | Group identity, invite code, schedule, deadline, and status |
+| `khatma_members` | Group membership and organizer roles |
+| `khatma_parts` | Unique Juz contributions and per-member attribution |
 | `settings` | Reader appearance, reminders, audio, and content preferences |
 | `mobile_state` | Mobile-only serialized UI state |
 
 SQLite foreign keys, WAL journaling, transactions, and indexes are initialized
-when the application starts. Session statistics are calculated from persisted
-history rather than hard-coded UI values.
+when the application starts. Session statistics and Khatma progress are
+calculated from persisted records rather than hard-coded UI values. A group is
+marked complete automatically when all 30 unique Juz records exist.
+
+Khatamat are fully functional as a local-first workflow and are included in
+backup and restore. Cross-device, real-time group synchronization requires a
+hosted API and authenticated sync service; this repository intentionally does
+not claim remote collaboration that is not configured.
 
 ### Authentication
 
@@ -144,8 +155,8 @@ npm run web
 
 The simulator is a self-contained browser preview for reviewing screens and
 interactions without Xcode or Android Studio. It includes onboarding, sign-up,
-sign-in, all five main tabs, plan editing, bilingual layout, animated charts,
-and backup demonstrations.
+sign-in, all five main tabs, Khatma create/join/progress flows, plan editing,
+bilingual layout, animated charts, and backup demonstrations.
 
 ```bash
 python3 -m http.server 4173

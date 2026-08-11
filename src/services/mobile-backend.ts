@@ -72,6 +72,38 @@ export type MobileStatistics = {
   weeklyTrend: Array<{ date: string; minutes: number; pages: number; sessions: number }>
 }
 
+export type MobileKhatmaStatus = 'active' | 'completed'
+
+export type MobileKhatmaGroup = {
+  id: number
+  nameAr: string
+  nameEn: string
+  descriptionAr: string
+  descriptionEn: string
+  inviteCode: string
+  memberCount: number
+  completedParts: number
+  totalParts: number
+  daysRemaining: number
+  scheduleAr: string
+  scheduleEn: string
+  status: MobileKhatmaStatus
+  createdAt: string
+}
+
+export type MobileKhatmaMember = {
+  id: number
+  displayName: string
+  avatarInitial: string
+  role: 'owner' | 'member'
+  completedParts: number
+}
+
+export type MobileKhatmaDetail = MobileKhatmaGroup & {
+  members: MobileKhatmaMember[]
+  completedJuz: number[]
+}
+
 export type MobileSnapshot = {
   plan: {
     id: number
@@ -90,6 +122,7 @@ export type MobileSnapshot = {
   settings: MobileSettings
   sessions: MobileSession[]
   statistics: MobileStatistics
+  khatmas: MobileKhatmaGroup[]
 }
 
 export type BackendStatus = {
@@ -165,8 +198,34 @@ const USER_SCHEMA = `
   CREATE TABLE IF NOT EXISTS mobile_state (
     id INTEGER PRIMARY KEY CHECK (id = 1), state_json TEXT NOT NULL, updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS khatma_groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name_ar TEXT NOT NULL, name_en TEXT NOT NULL,
+    description_ar TEXT NOT NULL DEFAULT '', description_en TEXT NOT NULL DEFAULT '',
+    invite_code TEXT NOT NULL UNIQUE, days_remaining INTEGER NOT NULL DEFAULT 30,
+    schedule_ar TEXT NOT NULL DEFAULT 'بعد كل صلاة', schedule_en TEXT NOT NULL DEFAULT 'After every prayer',
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','completed')),
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS khatma_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL,
+    display_name TEXT NOT NULL, avatar_initial TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('owner','member')), joined_at TEXT NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES khatma_groups(id) ON DELETE CASCADE,
+    UNIQUE (group_id, display_name)
+  );
+  CREATE TABLE IF NOT EXISTS khatma_parts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL,
+    juz_number INTEGER NOT NULL CHECK (juz_number BETWEEN 1 AND 30), member_id INTEGER,
+    completed_at TEXT NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES khatma_groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (member_id) REFERENCES khatma_members(id) ON DELETE SET NULL,
+    UNIQUE (group_id, juz_number)
+  );
   CREATE INDEX IF NOT EXISTS idx_sessions_plan_date
   ON reading_sessions(plan_id, scheduled_date, scheduled_time);
+  CREATE INDEX IF NOT EXISTS idx_khatma_members_group ON khatma_members(group_id);
+  CREATE INDEX IF NOT EXISTS idx_khatma_parts_group ON khatma_parts(group_id, juz_number);
   INSERT OR IGNORE INTO settings (id) VALUES (1);
   INSERT INTO reading_plan (id, start_type, start_surah, start_ayah, start_page, sessions_per_day, repeat_mode, repeat_days, active, created_at, updated_at)
   SELECT 1, 'page', 2, 203, 100, 3, 'daily', '[0,1,2,3,4,5,6]', 1, datetime('now'), datetime('now')
@@ -176,6 +235,9 @@ const USER_SCHEMA = `
 `
 
 const BACKUP_TABLES = {
+  khatma_groups: ['id', 'name_ar', 'name_en', 'description_ar', 'description_en', 'invite_code', 'days_remaining', 'schedule_ar', 'schedule_en', 'status', 'created_at', 'updated_at'],
+  khatma_members: ['id', 'group_id', 'display_name', 'avatar_initial', 'role', 'joined_at'],
+  khatma_parts: ['id', 'group_id', 'juz_number', 'member_id', 'completed_at'],
   reading_plan: ['id', 'start_type', 'start_surah', 'start_ayah', 'start_page', 'sessions_per_day', 'repeat_mode', 'repeat_days', 'active', 'created_at', 'updated_at'],
   reading_times: ['id', 'plan_id', 'session_order', 'name', 'start_time', 'duration_minutes', 'repeat_days', 'is_enabled', 'disabled_at_utc'],
   reading_progress: ['plan_id', 'current_surah', 'current_ayah', 'current_page', 'current_global_ayah', 'updated_at'],
@@ -306,6 +368,47 @@ async function seedDesktopSample() {
   }
 }
 
+async function seedKhatmaSample() {
+  const database = db()
+  const count = await database.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM khatma_groups')
+  if (Number(count?.count ?? 0) > 0) return
+
+  const now = new Date().toISOString()
+  const samples = [
+    { nameAr: 'أصدقاء الخير', nameEn: 'Friends of Good', code: 'KHAIR20', members: 12, parts: 20, days: 8 },
+    { nameAr: 'ختمة العائلة', nameEn: 'Family Khatma', code: 'FAMILY14', members: 8, parts: 14, days: 12 },
+    { nameAr: 'رفاق القرآن', nameEn: 'Quran Companions', code: 'QURAN26', members: 16, parts: 26, days: 5 },
+  ]
+  await transaction(async () => {
+    for (const sample of samples) {
+      const result = await database.runAsync(
+        `INSERT INTO khatma_groups (
+          name_ar, name_en, description_ar, description_en, invite_code, days_remaining,
+          schedule_ar, schedule_en, status, created_at, updated_at
+        ) VALUES (?, ?, 'رحلة جماعية هادئة مع كتاب الله', 'A calm shared journey with the Quran', ?, ?, 'بعد كل صلاة', 'After every prayer', 'active', ?, ?)`,
+        sample.nameAr, sample.nameEn, sample.code, sample.days, now, now,
+      )
+      const groupId = Number(result.lastInsertRowId)
+      const memberIds: number[] = []
+      for (let index = 0; index < sample.members; index += 1) {
+        const name = index === 0 ? 'Abdulqader Saif' : `Member ${index + 1}`
+        const member = await database.runAsync(
+          `INSERT INTO khatma_members (group_id, display_name, avatar_initial, role, joined_at)
+           VALUES (?, ?, ?, ?, ?)`,
+          groupId, name, index === 0 ? 'A' : String(index + 1), index === 0 ? 'owner' : 'member', now,
+        )
+        memberIds.push(Number(member.lastInsertRowId))
+      }
+      for (let juz = 1; juz <= sample.parts; juz += 1) {
+        await database.runAsync(
+          'INSERT INTO khatma_parts (group_id, juz_number, member_id, completed_at) VALUES (?, ?, ?, ?)',
+          groupId, juz, memberIds[(juz - 1) % memberIds.length], now,
+        )
+      }
+    }
+  })
+}
+
 async function ensureTodaySessions() {
   const database = db()
   const today = dateKey()
@@ -336,6 +439,7 @@ export async function initializeMobileBackend(quranDatabase: SQLiteDatabase): Pr
   userDatabase = await SQLite.openDatabaseAsync('wird-user.db')
   await userDatabase.execAsync(USER_SCHEMA)
   await seedDesktopSample()
+  await seedKhatmaSample()
   await ensureTodaySessions()
   const row = await quranDatabase.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM ayahs')
   return { ready: Number(row?.count ?? 0) === 6236, quranAyahs: Number(row?.count ?? 0), bundledSources: 7, source: 'desktop-quran.db' }
@@ -392,6 +496,159 @@ async function getStatistics(): Promise<MobileStatistics> {
     approximatePages: Number(summary?.approximatePages ?? 0),
     weeklyTrend,
   }
+}
+
+function mapKhatmaGroup(row: Record<string, unknown>): MobileKhatmaGroup {
+  return {
+    id: Number(row.id),
+    nameAr: String(row.name_ar),
+    nameEn: String(row.name_en),
+    descriptionAr: String(row.description_ar ?? ''),
+    descriptionEn: String(row.description_en ?? ''),
+    inviteCode: String(row.invite_code),
+    memberCount: Number(row.member_count ?? 0),
+    completedParts: Number(row.completed_parts ?? 0),
+    totalParts: 30,
+    daysRemaining: Number(row.days_remaining ?? 0),
+    scheduleAr: String(row.schedule_ar),
+    scheduleEn: String(row.schedule_en),
+    status: row.status === 'completed' ? 'completed' : 'active',
+    createdAt: String(row.created_at),
+  }
+}
+
+export async function loadMobileKhatmaGroups(): Promise<MobileKhatmaGroup[]> {
+  const rows = await db().getAllAsync<Record<string, unknown>>(
+    `SELECT g.*,
+      COUNT(DISTINCT m.id) AS member_count,
+      COUNT(DISTINCT p.juz_number) AS completed_parts
+     FROM khatma_groups g
+     LEFT JOIN khatma_members m ON m.group_id = g.id
+     LEFT JOIN khatma_parts p ON p.group_id = g.id
+     GROUP BY g.id
+     ORDER BY CASE g.status WHEN 'active' THEN 0 ELSE 1 END, g.updated_at DESC`,
+  )
+  return rows.map(mapKhatmaGroup)
+}
+
+export async function loadMobileKhatmaDetail(groupId: number): Promise<MobileKhatmaDetail> {
+  const groups = await db().getAllAsync<Record<string, unknown>>(
+    `SELECT g.*,
+      COUNT(DISTINCT m.id) AS member_count,
+      COUNT(DISTINCT p.juz_number) AS completed_parts
+     FROM khatma_groups g
+     LEFT JOIN khatma_members m ON m.group_id = g.id
+     LEFT JOIN khatma_parts p ON p.group_id = g.id
+     WHERE g.id = ? GROUP BY g.id`,
+    groupId,
+  )
+  if (!groups[0]) throw new Error('Khatma group was not found')
+  const members = await db().getAllAsync<Record<string, unknown>>(
+    `SELECT m.*, COUNT(p.id) AS completed_parts
+     FROM khatma_members m LEFT JOIN khatma_parts p ON p.member_id = m.id
+     WHERE m.group_id = ? GROUP BY m.id
+     ORDER BY CASE m.role WHEN 'owner' THEN 0 ELSE 1 END, m.joined_at`,
+    groupId,
+  )
+  const parts = await db().getAllAsync<{ juz_number: number }>(
+    'SELECT juz_number FROM khatma_parts WHERE group_id = ? ORDER BY juz_number',
+    groupId,
+  )
+  return {
+    ...mapKhatmaGroup(groups[0]),
+    members: members.map((row) => ({
+      id: Number(row.id), displayName: String(row.display_name), avatarInitial: String(row.avatar_initial),
+      role: row.role === 'owner' ? 'owner' : 'member', completedParts: Number(row.completed_parts ?? 0),
+    })),
+    completedJuz: parts.map((part) => Number(part.juz_number)),
+  }
+}
+
+function inviteCode(name: string) {
+  const prefix = name.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase() || 'WIRD'
+  return `${prefix}${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+}
+
+export async function createMobileKhatmaGroup(input: {
+  nameAr: string; nameEn: string; daysRemaining: number; ownerName: string
+}): Promise<MobileKhatmaDetail> {
+  const database = db()
+  const now = new Date().toISOString()
+  let groupId = 0
+  await transaction(async () => {
+    const result = await database.runAsync(
+      `INSERT INTO khatma_groups (
+        name_ar, name_en, description_ar, description_en, invite_code, days_remaining,
+        schedule_ar, schedule_en, status, created_at, updated_at
+      ) VALUES (?, ?, 'رحلة جماعية هادئة مع كتاب الله', 'A calm shared journey with the Quran', ?, ?, 'بعد كل صلاة', 'After every prayer', 'active', ?, ?)`,
+      input.nameAr.trim(), input.nameEn.trim(), inviteCode(input.nameEn || input.nameAr),
+      Math.min(365, Math.max(1, input.daysRemaining)), now, now,
+    )
+    groupId = Number(result.lastInsertRowId)
+    await database.runAsync(
+      `INSERT INTO khatma_members (group_id, display_name, avatar_initial, role, joined_at)
+       VALUES (?, ?, ?, 'owner', ?)`,
+      groupId, input.ownerName.trim(), input.ownerName.trim().slice(0, 1).toUpperCase() || 'W', now,
+    )
+  })
+  return loadMobileKhatmaDetail(groupId)
+}
+
+export async function joinMobileKhatma(invite: string, displayName: string): Promise<MobileKhatmaDetail> {
+  const database = db()
+  const group = await database.getFirstAsync<{ id: number }>(
+    'SELECT id FROM khatma_groups WHERE UPPER(invite_code) = UPPER(?) LIMIT 1', invite.trim(),
+  )
+  if (!group) throw new Error('Khatma invite was not found')
+  const name = displayName.trim()
+  await database.runAsync(
+    `INSERT OR IGNORE INTO khatma_members (group_id, display_name, avatar_initial, role, joined_at)
+     VALUES (?, ?, ?, 'member', ?)`,
+    group.id, name, name.slice(0, 1).toUpperCase() || 'W', new Date().toISOString(),
+  )
+  return loadMobileKhatmaDetail(group.id)
+}
+
+export async function completeMobileKhatmaPart(groupId: number, displayName: string): Promise<MobileKhatmaDetail> {
+  const database = db()
+  const now = new Date().toISOString()
+  await transaction(async () => {
+    let member = await database.getFirstAsync<{ id: number }>(
+      'SELECT id FROM khatma_members WHERE group_id = ? AND display_name = ? LIMIT 1', groupId, displayName.trim(),
+    )
+    if (!member) {
+      const result = await database.runAsync(
+        `INSERT INTO khatma_members (group_id, display_name, avatar_initial, role, joined_at)
+         VALUES (?, ?, ?, 'member', ?)`,
+        groupId, displayName.trim(), displayName.trim().slice(0, 1).toUpperCase() || 'W', now,
+      )
+      member = { id: Number(result.lastInsertRowId) }
+    }
+    const next = await database.getFirstAsync<{ juz: number }>(
+      `SELECT value AS juz FROM (
+        SELECT 1 AS value UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+        UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+        UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+        UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+        UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24 UNION ALL SELECT 25
+        UNION ALL SELECT 26 UNION ALL SELECT 27 UNION ALL SELECT 28 UNION ALL SELECT 29 UNION ALL SELECT 30
+      ) WHERE value NOT IN (SELECT juz_number FROM khatma_parts WHERE group_id = ?) ORDER BY value LIMIT 1`,
+      groupId,
+    )
+    if (!next) return
+    await database.runAsync(
+      'INSERT INTO khatma_parts (group_id, juz_number, member_id, completed_at) VALUES (?, ?, ?, ?)',
+      groupId, next.juz, member.id, now,
+    )
+    const progress = await database.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM khatma_parts WHERE group_id = ?', groupId,
+    )
+    await database.runAsync(
+      `UPDATE khatma_groups SET status = ?, updated_at = ? WHERE id = ?`,
+      Number(progress?.count ?? 0) >= 30 ? 'completed' : 'active', now, groupId,
+    )
+  })
+  return loadMobileKhatmaDetail(groupId)
 }
 
 export async function loadMobileSnapshot(): Promise<MobileSnapshot> {
@@ -458,6 +715,7 @@ export async function loadMobileSnapshot(): Promise<MobileSnapshot> {
       endGlobalAyah: row.end_global_ayah === null ? null : Number(row.end_global_ayah),
     })),
     statistics: await getStatistics(),
+    khatmas: await loadMobileKhatmaGroups(),
   }
 }
 
@@ -622,7 +880,7 @@ export async function restoreBackupPayload(payload: string) {
   const database = db()
   await transaction(async () => {
     await database.execAsync('PRAGMA foreign_keys = OFF')
-    for (const table of ['reading_sessions', 'reading_times', 'reading_progress', 'reading_plan', 'settings', 'mobile_state']) {
+    for (const table of ['khatma_parts', 'khatma_members', 'khatma_groups', 'reading_sessions', 'reading_times', 'reading_progress', 'reading_plan', 'settings', 'mobile_state']) {
       await database.runAsync(`DELETE FROM ${table}`)
     }
     for (const table of Object.keys(BACKUP_TABLES) as Array<keyof typeof BACKUP_TABLES>) {
@@ -640,5 +898,6 @@ export async function restoreBackupPayload(payload: string) {
     await database.execAsync('PRAGMA foreign_keys = ON')
   })
   await ensureTodaySessions()
+  await seedKhatmaSample()
   return loadMobileSnapshot()
 }
