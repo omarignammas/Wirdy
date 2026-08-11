@@ -32,6 +32,24 @@ The repository contains both layers of the mobile product:
 There is no required remote API. User data stays on the device unless the user
 explicitly exports a backup.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><strong>Reading Dashboard</strong></td>
+    <td align="center"><strong>Collaborative Khatamat</strong></td>
+    <td align="center"><strong>Group Progress</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/home-dashboard.jpg" alt="Wirdy Arabic home dashboard on iPhone" /></td>
+    <td><img src="docs/screenshots/khatamat-groups.jpg" alt="Wirdy collaborative Khatamat list on iPhone" /></td>
+    <td><img src="docs/screenshots/khatma-detail.jpg" alt="Wirdy Khatma group detail and progress on iPhone" /></td>
+  </tr>
+</table>
+
+The product interface supports Arabic RTL and English LTR. These screens were
+captured from the repository's interactive virtual iPhone simulator.
+
 ## Product Features
 
 - Arabic RTL and English LTR interfaces with Latin numerals in both languages.
