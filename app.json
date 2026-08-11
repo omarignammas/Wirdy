@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Wird",
+    "slug": "wird-mobile",
+    "scheme": "wird",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/wird-app-icon.png",
+    "splash": {
+      "image": "./assets/wird-app-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.wird.mobile",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
+    },
+    "android": {
+      "package": "com.wird.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/wird-app-icon.png",
+        "backgroundColor": "#07523D"
+      }
+    },
+    "web": {
+      "favicon": "./assets/wird-app-icon.png"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-sqlite",
+      ["expo-secure-store", { "configureAndroidBackup": true }]
+    ]
+  }
+}
