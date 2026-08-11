@@ -46,8 +46,10 @@ export type MobilePlanSession = {
   repeatDays?: number[]
 }
 
+export type MobileTheme = 'system' | 'light' | 'dark'
+
 export type MobileSettings = {
-  theme: 'light' | 'dark'
+  theme: MobileTheme
   quranFontSize: number
   mushafZoom: number
   readerPageMode: 'auto' | 'single' | 'spread'
@@ -185,7 +187,7 @@ const USER_SCHEMA = `
     UNIQUE (plan_id, scheduled_date, scheduled_time)
   );
   CREATE TABLE IF NOT EXISTS settings (
-    id INTEGER PRIMARY KEY CHECK (id = 1), theme TEXT NOT NULL DEFAULT 'light',
+    id INTEGER PRIMARY KEY CHECK (id = 1), theme TEXT NOT NULL DEFAULT 'system',
     quran_font_size INTEGER NOT NULL DEFAULT 28, mushaf_zoom INTEGER NOT NULL DEFAULT 100,
     reader_page_mode TEXT NOT NULL DEFAULT 'auto', reader_fit_mode TEXT NOT NULL DEFAULT 'height',
     show_ayah_numbers INTEGER NOT NULL DEFAULT 1, last_opened_page INTEGER NOT NULL DEFAULT 32,
@@ -307,7 +309,7 @@ async function seedDesktopSample() {
         now,
       )
     }
-    await database.runAsync("UPDATE settings SET theme = 'light', last_opened_page = 32 WHERE id = 1")
+    await database.runAsync("UPDATE settings SET theme = 'system', last_opened_page = 32 WHERE id = 1")
     for (const item of [
       { order: 1, name: 'Wird session 1', time: '11:35', duration: 5 },
       { order: 2, name: 'Wird session 2', time: '13:18', duration: 5 },
@@ -673,7 +675,7 @@ export async function loadMobileSnapshot(): Promise<MobileSnapshot> {
   const currentPage = Number(plan.current_page)
   const currentGlobalAyah = Number(plan.current_global_ayah)
   const settings: MobileSettings = {
-    theme: setting?.theme === 'dark' ? 'dark' : 'light',
+    theme: ['system', 'light', 'dark'].includes(String(setting?.theme)) ? setting?.theme as MobileTheme : 'system',
     quranFontSize: Number(setting?.quran_font_size ?? 28),
     mushafZoom: Number(setting?.mushaf_zoom ?? 100),
     readerPageMode: ['single', 'spread'].includes(String(setting?.reader_page_mode)) ? setting?.reader_page_mode as 'single' | 'spread' : 'auto',
@@ -844,10 +846,13 @@ export async function saveAppState(state: unknown) {
   const json = JSON.stringify(state)
   const now = new Date().toISOString()
   const values = state as Partial<{
-    darkMode: boolean; fontSize: number; mushafZoom: number; pageMode: string; fitMode: string;
+    themeMode: MobileTheme; darkMode: boolean; fontSize: number; mushafZoom: number; pageMode: string; fitMode: string;
     ayahNumbers: boolean; readerPage: number; notifications: boolean; preSessionAlert: boolean;
     spiritualAudio: boolean; spiritualCards: boolean; smartSuggestions: boolean;
   }>
+  const theme = values.themeMode && ['system', 'light', 'dark'].includes(values.themeMode)
+    ? values.themeMode
+    : typeof values.darkMode === 'boolean' ? values.darkMode ? 'dark' : 'light' : 'system'
   await database.runAsync(
     `INSERT INTO mobile_state (id, state_json, updated_at) VALUES (1, ?, ?)
      ON CONFLICT(id) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at`,
@@ -857,7 +862,7 @@ export async function saveAppState(state: unknown) {
     `UPDATE settings SET theme = ?, quran_font_size = ?, mushaf_zoom = ?, reader_page_mode = ?, reader_fit_mode = ?,
       show_ayah_numbers = ?, last_opened_page = ?, notifications_enabled = ?, pre_session_widget_enabled = ?,
       spiritual_audio_enabled = ?, spiritual_messages_enabled = ?, smart_suggestions_enabled = ? WHERE id = 1`,
-    values.darkMode ? 'dark' : 'light', values.fontSize ?? 28, values.mushafZoom ?? 100,
+    theme, values.fontSize ?? 28, values.mushafZoom ?? 100,
     values.pageMode ?? 'auto', values.fitMode ?? 'height', values.ayahNumbers === false ? 0 : 1,
     values.readerPage ?? 32, values.notifications === false ? 0 : 1, values.preSessionAlert === false ? 0 : 1,
     values.spiritualAudio === false ? 0 : 1, values.spiritualCards === false ? 0 : 1,

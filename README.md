@@ -73,6 +73,8 @@ captured from the repository's interactive virtual iPhone simulator.
 ## Product Features
 
 - Arabic RTL and English LTR interfaces with Latin numerals in both languages.
+- Persistent System, Light, and Dark appearance modes with native status-bar
+  adaptation.
 - iOS-inspired navigation, bottom sheets, segmented controls, switches, and
   accessible touch targets.
 - Animated circular progress and interactive weekly reading charts.

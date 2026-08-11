@@ -1,6 +1,7 @@
 import { ComponentProps, Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Appearance,
   Animated,
   Easing,
   Modal,
@@ -14,6 +15,7 @@ import {
   Switch,
   Text,
   TextInput,
+  useColorScheme,
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -50,6 +52,7 @@ import {
   type MobileSessionStatus,
   type MobileSnapshot,
   type MobileStatistics,
+  type MobileTheme,
   type QuranVerse,
 } from './src/services/mobile-backend'
 
@@ -175,33 +178,47 @@ export default function App() {
 
 function AppRoot() {
   const quranDatabase = useSQLiteContext()
+  const systemColorScheme = useColorScheme()
   const [language, setLanguage] = useState<Language>('ar')
+  const [themeMode, setThemeMode] = useState<MobileTheme>('system')
   const [profile, setProfile] = useState<WirdProfile | null>(null)
   const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null)
   const [onboardingComplete, setOnboardingComplete] = useState(false)
   const [loading, setLoading] = useState(true)
+  const darkMode = themeMode === 'dark' || (themeMode === 'system' && systemColorScheme === 'dark')
+
+  useEffect(() => {
+    Appearance.setColorScheme(themeMode === 'system' ? 'unspecified' : themeMode)
+    return () => Appearance.setColorScheme('unspecified')
+  }, [themeMode])
 
   useEffect(() => {
     let cancelled = false
-    void Promise.all([initializeMobileBackend(quranDatabase), getCurrentProfile(), AsyncStorage.getItem(ONBOARDING_KEY)]).then(([status, currentProfile, onboarding]) => {
+    void Promise.all([initializeMobileBackend(quranDatabase), getCurrentProfile(), AsyncStorage.getItem(ONBOARDING_KEY), AsyncStorage.getItem(STORAGE_KEY)]).then(([status, currentProfile, onboarding, savedState]) => {
       if (cancelled) return
       setBackendStatus(status)
       setProfile(currentProfile)
       setOnboardingComplete(Boolean(onboarding))
+      if (savedState) {
+        try {
+          const saved = JSON.parse(savedState) as Partial<{ themeMode: MobileTheme; darkMode: boolean }>
+          if (saved.themeMode && ['system', 'light', 'dark'].includes(saved.themeMode)) setThemeMode(saved.themeMode)
+          else if (typeof saved.darkMode === 'boolean') setThemeMode(saved.darkMode ? 'dark' : 'light')
+        } catch { /* Ignore an invalid legacy preference and use the system mode. */ }
+      }
     }).finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [quranDatabase])
 
-  if (loading || !backendStatus) return <SafeAreaView style={bootstrapStyles.loading}><StatusBar barStyle="dark-content" /><ActivityIndicator size="large" color="#175C43" /></SafeAreaView>
-  if (!profile) return <AuthFlow initialMode={onboardingComplete ? 'signIn' : 'onboarding'} language={language} onLanguage={setLanguage} onAuthenticated={(nextProfile) => { setProfile(nextProfile); setOnboardingComplete(true); void AsyncStorage.setItem(ONBOARDING_KEY, '1') }} />
-  return <MainApp language={language} initialProfile={profile} backendStatus={backendStatus} quranDatabase={quranDatabase} onSignOut={async () => { await signOut(); setProfile(null) }} />
+  if (loading || !backendStatus) return <SafeAreaView style={[bootstrapStyles.loading, { backgroundColor: darkMode ? dark.background : light.background }]}><StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} /><ActivityIndicator size="large" color={darkMode ? dark.primary : light.primary} /></SafeAreaView>
+  if (!profile) return <AuthFlow initialMode={onboardingComplete ? 'signIn' : 'onboarding'} language={language} darkMode={darkMode} onLanguage={setLanguage} onAuthenticated={(nextProfile) => { setProfile(nextProfile); setOnboardingComplete(true); void AsyncStorage.setItem(ONBOARDING_KEY, '1') }} />
+  return <MainApp language={language} initialProfile={profile} backendStatus={backendStatus} quranDatabase={quranDatabase} themeMode={themeMode} setThemeMode={setThemeMode} darkMode={darkMode} onSignOut={async () => { await signOut(); setProfile(null) }} />
 }
 
 const bootstrapStyles = StyleSheet.create({ loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' } })
 
-function MainApp({ language: initialLanguage, initialProfile, backendStatus, quranDatabase, onSignOut }: { language: Language; initialProfile: WirdProfile; backendStatus: BackendStatus; quranDatabase: SQLiteDatabase; onSignOut: () => Promise<void> }) {
+function MainApp({ language: initialLanguage, initialProfile, backendStatus, quranDatabase, themeMode, setThemeMode, darkMode, onSignOut }: { language: Language; initialProfile: WirdProfile; backendStatus: BackendStatus; quranDatabase: SQLiteDatabase; themeMode: MobileTheme; setThemeMode: (theme: MobileTheme) => void; darkMode: boolean; onSignOut: () => Promise<void> }) {
   const [language, setLanguage] = useState<Language>(initialLanguage)
-  const [darkMode, setDarkMode] = useState(false)
   const [tab, setTab] = useState<TabId>('home')
   const [moreRoute, setMoreRoute] = useState<MoreRoute>('main')
   const [sessions, setSessions] = useState(initialSessions)
@@ -269,7 +286,7 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
     const mappedWeek = weekly.map((day, index) => ({ ...day, minutes: snapshot.statistics.weeklyTrend[index]?.minutes ?? 0 }))
     setWeekData(mappedWeek)
     setSelectedWeekDay(mappedWeek.at(-1) ?? mappedWeek[0])
-    setDarkMode(snapshot.settings.theme === 'dark')
+    setThemeMode(snapshot.settings.theme)
     setFontSize(snapshot.settings.quranFontSize)
     setMushafZoom(snapshot.settings.mushafZoom)
     setPageMode(snapshot.settings.readerPageMode)
@@ -293,19 +310,21 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
       applySnapshot(snapshot)
       if (!source) return
       const saved = source as Partial<{
-        language: Language; bookmarks: number[];
+        language: Language; bookmarks: number[]; themeMode: MobileTheme; darkMode: boolean;
       }>
       if (saved.language) setLanguage(saved.language)
       if (saved.bookmarks) setBookmarks(saved.bookmarks)
+      if (saved.themeMode && ['system', 'light', 'dark'].includes(saved.themeMode)) setThemeMode(saved.themeMode)
+      else if (typeof saved.darkMode === 'boolean') setThemeMode(saved.darkMode ? 'dark' : 'light')
     }).catch(() => undefined).finally(() => { if (!cancelled) setHydrated(true) })
     return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    const state = { language, darkMode, readerPage, bookmarks, fontSize, mushafZoom, pageMode, fitMode, ayahNumbers, spiritualCards, smartSuggestions, notifications, spiritualAudio, preSessionAlert }
+    const state = { language, themeMode, readerPage, bookmarks, fontSize, mushafZoom, pageMode, fitMode, ayahNumbers, spiritualCards, smartSuggestions, notifications, spiritualAudio, preSessionAlert }
     void Promise.all([saveAppState(state), AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state))])
-  }, [ayahNumbers, bookmarks, darkMode, fitMode, fontSize, hydrated, language, mushafZoom, notifications, pageMode, preSessionAlert, readerPage, smartSuggestions, spiritualAudio, spiritualCards])
+  }, [ayahNumbers, bookmarks, fitMode, fontSize, hydrated, language, mushafZoom, notifications, pageMode, preSessionAlert, readerPage, smartSuggestions, spiritualAudio, spiritualCards, themeMode])
 
   useEffect(() => {
     let cancelled = false
@@ -448,7 +467,7 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
         {tab === 'reader' && <ReaderScreen t={t} language={language} styles={styles} palette={palette} page={readerPage} verses={pageVerses} fontSize={fontSize} activeSession={activeSession} elapsed={elapsed} selectedVerse={selectedVerse} bookmarks={bookmarks} ayahNumbers={ayahNumbers} onSelectVerse={setSelectedVerse} onPageChange={setReaderPage} onStart={() => nextSession && startSession(nextSession)} onPause={async () => { if (activeSession) applySnapshot(await pauseMobileSession(activeSession.id)); changeTab('home') }} onOpenSheet={setReaderSheet} onToggleBookmark={() => setBookmarks((current) => current.includes(selectedVerse) ? current.filter((item) => item !== selectedVerse) : [selectedVerse, ...current])} />}
         {tab === 'khatmas' && <KhatmasScreen t={t} language={language} styles={styles} palette={palette} profile={initialProfile} groups={khatmas} selected={selectedKhatma} message={khatmaMessage} onSelect={openKhatma} onBack={() => setSelectedKhatma(null)} onCreate={createKhatma} onJoin={joinKhatma} onCompletePart={completeKhatmaPart} />}
         {tab === 'stats' && <StatsScreen t={t} language={language} styles={styles} palette={palette} progress={progress} statistics={statistics} days={weekData} selectedDay={selectedWeekDay} onSelectDay={setSelectedWeekDay} />}
-        {tab === 'more' && <MoreScreen route={moreRoute} setRoute={setMoreRoute} t={t} profile={initialProfile} backendStatus={backendStatus} onSignOut={onSignOut} language={language} setLanguage={setLanguage} styles={styles} palette={palette} darkMode={darkMode} setDarkMode={setDarkMode} sessions={sessions} setSessions={setSessions} sessionFilter={sessionFilter} setSessionFilter={setSessionFilter} onStartSession={startSession} onPostponeSession={setPostponing} planSessions={planSessions} setPlanSessions={setPlanSessions} editingSession={editingSession} setEditingSession={setEditingSession} currentPage={readerPage} planStartPage={planStartPage} onSavePlan={savePlan} fontSize={fontSize} setFontSize={setFontSize} mushafZoom={mushafZoom} setMushafZoom={setMushafZoom} pageMode={pageMode} setPageMode={setPageMode} fitMode={fitMode} setFitMode={setFitMode} ayahNumbers={ayahNumbers} setAyahNumbers={setAyahNumbers} spiritualCards={spiritualCards} setSpiritualCards={setSpiritualCards} smartSuggestions={smartSuggestions} setSmartSuggestions={setSmartSuggestions} notifications={notifications} setNotifications={setNotifications} spiritualAudio={spiritualAudio} setSpiritualAudio={setSpiritualAudio} preSessionAlert={preSessionAlert} setPreSessionAlert={setPreSessionAlert} backupMessage={backupMessage} onBackup={runBackup} />}
+        {tab === 'more' && <MoreScreen route={moreRoute} setRoute={setMoreRoute} t={t} profile={initialProfile} backendStatus={backendStatus} onSignOut={onSignOut} language={language} setLanguage={setLanguage} styles={styles} palette={palette} themeMode={themeMode} setThemeMode={setThemeMode} sessions={sessions} setSessions={setSessions} sessionFilter={sessionFilter} setSessionFilter={setSessionFilter} onStartSession={startSession} onPostponeSession={setPostponing} planSessions={planSessions} setPlanSessions={setPlanSessions} editingSession={editingSession} setEditingSession={setEditingSession} currentPage={readerPage} planStartPage={planStartPage} onSavePlan={savePlan} fontSize={fontSize} setFontSize={setFontSize} mushafZoom={mushafZoom} setMushafZoom={setMushafZoom} pageMode={pageMode} setPageMode={setPageMode} fitMode={fitMode} setFitMode={setFitMode} ayahNumbers={ayahNumbers} setAyahNumbers={setAyahNumbers} spiritualCards={spiritualCards} setSpiritualCards={setSpiritualCards} smartSuggestions={smartSuggestions} setSmartSuggestions={setSmartSuggestions} notifications={notifications} setNotifications={setNotifications} spiritualAudio={spiritualAudio} setSpiritualAudio={setSpiritualAudio} preSessionAlert={preSessionAlert} setPreSessionAlert={setPreSessionAlert} backupMessage={backupMessage} onBackup={runBackup} />}
 
         <TabBar active={tab} t={t} styles={styles} palette={palette} onChange={changeTab} />
 
@@ -633,7 +652,7 @@ function StatsScreen({ t, language, styles, palette, progress, statistics, days,
   </ScrollView>
 }
 
-function MoreScreen(props: { route: MoreRoute; setRoute: (route: MoreRoute) => void; t: typeof copy.ar | typeof copy.en; profile: WirdProfile; backendStatus: BackendStatus; onSignOut: () => Promise<void>; language: Language; setLanguage: (lang: Language) => void; styles: Styles; palette: Palette; darkMode: boolean; setDarkMode: (value: boolean) => void; sessions: WirdSession[]; setSessions: Dispatch<SetStateAction<WirdSession[]>>; sessionFilter: SessionFilter; setSessionFilter: (filter: SessionFilter) => void; onStartSession: (session: WirdSession) => void; onPostponeSession: (session: WirdSession) => void; planSessions: WirdSession[]; setPlanSessions: Dispatch<SetStateAction<WirdSession[]>>; editingSession: WirdSession | null; setEditingSession: (session: WirdSession | null) => void; currentPage: number; planStartPage: number; onSavePlan: (sessions: WirdSession[]) => Promise<void>; fontSize: number; setFontSize: (value: number) => void; mushafZoom: number; setMushafZoom: (value: number) => void; pageMode: 'auto' | 'single' | 'spread'; setPageMode: (value: 'auto' | 'single' | 'spread') => void; fitMode: 'height' | 'width' | 'custom'; setFitMode: (value: 'height' | 'width' | 'custom') => void; ayahNumbers: boolean; setAyahNumbers: (value: boolean) => void; spiritualCards: boolean; setSpiritualCards: (value: boolean) => void; smartSuggestions: boolean; setSmartSuggestions: (value: boolean) => void; notifications: boolean; setNotifications: (value: boolean) => void; spiritualAudio: boolean; setSpiritualAudio: (value: boolean) => void; preSessionAlert: boolean; setPreSessionAlert: (value: boolean) => void; backupMessage: string | null; onBackup: (action: 'create' | 'restore') => Promise<void> }) {
+function MoreScreen(props: { route: MoreRoute; setRoute: (route: MoreRoute) => void; t: typeof copy.ar | typeof copy.en; profile: WirdProfile; backendStatus: BackendStatus; onSignOut: () => Promise<void>; language: Language; setLanguage: (lang: Language) => void; styles: Styles; palette: Palette; themeMode: MobileTheme; setThemeMode: (value: MobileTheme) => void; sessions: WirdSession[]; setSessions: Dispatch<SetStateAction<WirdSession[]>>; sessionFilter: SessionFilter; setSessionFilter: (filter: SessionFilter) => void; onStartSession: (session: WirdSession) => void; onPostponeSession: (session: WirdSession) => void; planSessions: WirdSession[]; setPlanSessions: Dispatch<SetStateAction<WirdSession[]>>; editingSession: WirdSession | null; setEditingSession: (session: WirdSession | null) => void; currentPage: number; planStartPage: number; onSavePlan: (sessions: WirdSession[]) => Promise<void>; fontSize: number; setFontSize: (value: number) => void; mushafZoom: number; setMushafZoom: (value: number) => void; pageMode: 'auto' | 'single' | 'spread'; setPageMode: (value: 'auto' | 'single' | 'spread') => void; fitMode: 'height' | 'width' | 'custom'; setFitMode: (value: 'height' | 'width' | 'custom') => void; ayahNumbers: boolean; setAyahNumbers: (value: boolean) => void; spiritualCards: boolean; setSpiritualCards: (value: boolean) => void; smartSuggestions: boolean; setSmartSuggestions: (value: boolean) => void; notifications: boolean; setNotifications: (value: boolean) => void; spiritualAudio: boolean; setSpiritualAudio: (value: boolean) => void; preSessionAlert: boolean; setPreSessionAlert: (value: boolean) => void; backupMessage: string | null; onBackup: (action: 'create' | 'restore') => Promise<void> }) {
   const { route, setRoute, t, language, setLanguage, styles, palette } = props
   if (route === 'sessions') return <SessionsScreen t={t} language={language} styles={styles} palette={palette} sessions={props.sessions} filter={props.sessionFilter} onFilter={props.setSessionFilter} onStart={props.onStartSession} onPostpone={props.onPostponeSession} onManage={() => setRoute('plan')} onBack={() => setRoute('main')} />
   if (route === 'settings') return <SettingsScreen {...props} />
@@ -659,13 +678,13 @@ function MoreScreen(props: { route: MoreRoute; setRoute: (route: MoreRoute) => v
 }
 
 function SettingsScreen(props: Parameters<typeof MoreScreen>[0]) {
-  const { t, styles, palette, darkMode, setDarkMode, fontSize, setFontSize, mushafZoom, setMushafZoom, pageMode, setPageMode, fitMode, setFitMode, ayahNumbers, setAyahNumbers, spiritualCards, setSpiritualCards, smartSuggestions, setSmartSuggestions, notifications, setNotifications, spiritualAudio, setSpiritualAudio, preSessionAlert, setPreSessionAlert, setRoute, planStartPage, planSessions } = props
+  const { t, styles, palette, themeMode, setThemeMode, fontSize, setFontSize, mushafZoom, setMushafZoom, pageMode, setPageMode, fitMode, setFitMode, ayahNumbers, setAyahNumbers, spiritualCards, setSpiritualCards, smartSuggestions, setSmartSuggestions, notifications, setNotifications, spiritualAudio, setSpiritualAudio, preSessionAlert, setPreSessionAlert, setRoute, planStartPage, planSessions } = props
   const plannedCount = planSessions.filter((session) => session.enabled).length || 3
   return <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <SubpageHeader title={t.settings} subtitle={t.settingsSubtitle} styles={styles} palette={palette} onBack={() => setRoute('main')} />
     <View style={styles.currentPlanCard}><View style={styles.pageIntroIcon}><Ionicons name="information-circle-outline" size={20} color={palette.primary} /></View><View style={styles.positionCopy}><Text style={styles.cardTitle}>{props.language === 'ar' ? 'خطة الورد الحالية' : 'Current Wird plan'}</Text><Text style={styles.cardMeta}>{props.language === 'ar' ? `نقطة البداية: الصفحة ${planStartPage} · ${plannedCount} جلسات يوميًا` : `Starting point: page ${planStartPage} · ${plannedCount} sessions daily`}</Text></View><Pressable style={styles.headerButton} onPress={() => setRoute('plan')}><Ionicons name="pencil-outline" size={18} color={palette.primary} /></Pressable></View>
     <Text style={styles.groupTitle}>{t.appearanceReading}</Text>
-    <SettingSwitch icon={darkMode ? 'moon-outline' : 'sunny-outline'} title={darkMode ? t.darkMode : t.lightMode} value={darkMode} styles={styles} palette={palette} onChange={setDarkMode} />
+    <View style={styles.themeSetting}><View style={styles.themeSettingHeader}><View style={styles.pageIntroIcon}><Ionicons name={themeMode === 'dark' ? 'moon-outline' : themeMode === 'light' ? 'sunny-outline' : 'phone-portrait-outline'} size={19} color={palette.primary} /></View><View style={styles.themeSettingCopy}><Text style={styles.settingTitle}>{t.appearanceMode}</Text><Text style={styles.cardMeta}>{themeMode === 'system' ? t.followSystem : themeMode === 'dark' ? t.darkMode : t.lightMode}</Text></View></View><Segmented value={themeMode} options={[['system', t.systemMode], ['light', t.lightMode], ['dark', t.darkMode]]} styles={styles} onChange={setThemeMode} /></View>
     <StepperSetting icon="text-outline" title={t.quranFont} value={`${fontSize}px`} onMinus={() => setFontSize(Math.max(18, fontSize - 2))} onPlus={() => setFontSize(Math.min(64, fontSize + 2))} styles={styles} palette={palette} />
     <StepperSetting icon="scan-outline" title={t.mushafZoom} value={`${mushafZoom}%`} onMinus={() => setMushafZoom(Math.max(80, mushafZoom - 10))} onPlus={() => setMushafZoom(Math.min(160, mushafZoom + 10))} styles={styles} palette={palette} />
     <SettingChoice title={t.pageMode} value={pageMode} options={[['auto', t.automatic], ['single', t.singlePage], ['spread', t.twoPages]]} styles={styles} onChange={setPageMode} />
@@ -832,6 +851,7 @@ function makeStyles(p: Palette, rtl: boolean) {
     infoRow: { flexDirection: row, alignItems: 'center', gap: 10, minHeight: 69, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: p.line }, infoCopy: { flex: 1 },
     profileCard: { flexDirection: row, alignItems: 'center', gap: 12, padding: 15, borderRadius: 18, backgroundColor: p.primaryMuted }, profileLarge: { width: 55, height: 55, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: p.primaryDeep }, profileLargeText: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' }, profileCopy: { flex: 1 }, groupTitle: { marginTop: 20, marginBottom: 8, color: p.muted, fontSize: 11, fontWeight: '700', textAlign: align, textTransform: 'uppercase' }, menuRow: { minHeight: 63, flexDirection: row, alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: p.line }, menuTitle: { flex: 1, color: p.ink, fontSize: 15, fontWeight: '700', textAlign: align }, currentPlanCard: { minHeight: 88, flexDirection: row, alignItems: 'center', gap: 10, padding: 13, borderRadius: 18, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface },
     subpageHeader: { flexDirection: row, alignItems: 'center', gap: 10, marginBottom: 13 }, subpageCopy: { flex: 1 }, settingRow: { minHeight: 65, flexDirection: row, alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: p.line }, settingTitle: { flex: 1, color: p.ink, fontSize: 13, fontWeight: '800', textAlign: align }, stepper: { flexDirection: 'row', alignItems: 'center', gap: 7 }, stepButton: { width: 31, height: 31, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: p.primaryMuted }, stepValue: { minWidth: 42, color: p.ink, fontSize: 11, fontWeight: '900', textAlign: 'center' }, settingChoice: { paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: p.line }, settingChoiceTitle: { marginBottom: 8, color: p.ink, fontSize: 12, fontWeight: '800', textAlign: align }, dangerButton: { minHeight: 48, flexDirection: row, alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 18, borderRadius: 14, backgroundColor: `${p.danger}12` }, dangerText: { color: p.danger, fontSize: 12, fontWeight: '900' },
+    themeSetting: { gap: 11, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: p.line }, themeSettingHeader: { flexDirection: row, alignItems: 'center', gap: 10 }, themeSettingCopy: { flex: 1 },
     positionCard: { flexDirection: row, alignItems: 'center', gap: 10, padding: 13, borderRadius: 17, backgroundColor: p.primaryMuted }, positionCopy: { flex: 1 }, planCard: { marginBottom: 10, padding: 13, borderRadius: 18, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface }, planCardDisabled: { opacity: 0.62 }, planTop: { flexDirection: row, alignItems: 'center', gap: 9 }, planNumber: { width: 37, height: 37, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: p.primary }, planNumberText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' }, planCopy: { flex: 1 }, planDetails: { flexDirection: row, flexWrap: 'wrap', gap: 6, marginTop: 10 }, planDetail: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9, backgroundColor: p.elevated, color: p.muted, fontSize: 9 }, addButton: { minHeight: 48, flexDirection: row, alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: p.primary, backgroundColor: p.primaryMuted }, addButtonText: { color: p.primary, fontSize: 12, fontWeight: '900' }, saveBar: { minHeight: 50, flexDirection: row, alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 12, borderRadius: 14, backgroundColor: p.primary }, saveBarText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
     privacyBanner: { flexDirection: row, alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 17, backgroundColor: p.primaryMuted }, privacyCopy: { flex: 1 }, backupCard: { marginTop: 12, padding: 16, borderRadius: 19, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface }, backupIcon: { width: 47, height: 47, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: p.primaryMuted }, backupTitle: { marginTop: 12, color: p.ink, fontSize: 17, fontWeight: '900', textAlign: align }, backupText: { marginTop: 5, color: p.muted, fontSize: 11, lineHeight: 18, textAlign: align, writingDirection: writing }, successBanner: { minHeight: 48, flexDirection: row, alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 12, borderRadius: 14, backgroundColor: p.primaryMuted }, successText: { color: p.success, fontSize: 11, fontWeight: '900' },
     aboutHero: { alignItems: 'center', padding: 18, borderRadius: 20, backgroundColor: p.primaryDeep }, aboutMark: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: '#FFFFFF' }, aboutMarkText: { color: p.primaryDeep, fontSize: 28, fontWeight: '900' }, aboutTitle: { marginTop: 13, color: '#FFFFFF', fontSize: 20, fontWeight: '900', textAlign: 'center' }, aboutText: { marginTop: 7, color: 'rgba(255,255,255,0.67)', fontSize: 11, lineHeight: 18, textAlign: 'center' },
