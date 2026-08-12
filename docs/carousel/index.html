@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Wirdy Presentation Carousel</title>
+  <link rel="icon" href="../../assets/wird-app-icon.png">
+  <style>
+    *{box-sizing:border-box}
+    :root{font-family:-apple-system,BlinkMacSystemFont,"SF Arabic","Geeza Pro","Segoe UI",Arial,sans-serif;color:#13231b;background:#0f1713;letter-spacing:0}
+    body{min-height:100vh;margin:0;display:grid;place-items:center;padding:18px;background:#0f1713}
+    button{font:inherit;letter-spacing:0}
+    .shell{display:grid;justify-items:center;gap:15px}
+    .deck{position:relative;width:min(1080px,calc(100vw - 36px),calc(100vh - 116px));aspect-ratio:1;overflow:hidden;container-type:inline-size;background:#fff;box-shadow:0 34px 90px rgba(0,0,0,.34)}
+    .slide{position:absolute;inset:0;display:none;overflow:hidden;padding:6.5cqw;background:#f7faf8}
+    .slide.active{display:block;animation:enter .36s cubic-bezier(.2,.75,.2,1)}
+    @keyframes enter{from{opacity:.25;transform:translateX(2.4cqw)}to{opacity:1;transform:none}}
+    .slide:nth-child(even).active{animation-name:enterReverse}
+    @keyframes enterReverse{from{opacity:.25;transform:translateX(-2.4cqw)}to{opacity:1;transform:none}}
+    .brand{position:relative;z-index:5;display:flex;align-items:center;gap:1.2cqw;width:max-content}
+    .brand img{width:5.6cqw;height:5.6cqw;border-radius:1.25cqw;box-shadow:0 .8cqw 2cqw rgba(14,75,52,.16)}
+    .brand-copy b{display:block;color:#175c43;font-size:2.15cqw;font-weight:900;line-height:1}
+    .brand-copy span{display:block;margin-top:.48cqw;color:#9d771f;font-size:.92cqw;font-weight:800}
+    .counter{position:absolute;z-index:5;top:6.8cqw;left:6.5cqw;color:#175c43;font-size:1.2cqw;font-weight:900;direction:ltr}
+    .counter:before{content:"";display:inline-block;width:3.2cqw;height:1px;margin-inline-end:.8cqw;vertical-align:middle;background:#d5aa36}
+    .eyebrow{display:flex;align-items:center;gap:.8cqw;color:#9d771f;font-size:1.15cqw;font-weight:900}
+    .eyebrow:before{content:"";width:2.6cqw;height:2px;background:#d5aa36}
+    h1,h2,p{margin:0}
+    h1{font-size:6.9cqw;line-height:1.2;font-weight:950}
+    h2{font-size:5.2cqw;line-height:1.23;font-weight:950}
+    .gold{color:#b58925}
+    .green{color:#175c43}
+    .lead{color:#52625a;font-size:1.85cqw;line-height:1.7;font-weight:560}
+    .pill-row{display:flex;flex-wrap:wrap;gap:.8cqw}
+    .pill{display:flex;align-items:center;gap:.65cqw;min-height:3.5cqw;padding:0 1.25cqw;border:1px solid #dbe6e0;border-radius:99px;background:#fff;color:#175c43;font-size:1cqw;font-weight:850;box-shadow:0 .65cqw 1.5cqw rgba(28,73,53,.07)}
+    .pill:before{content:"";width:.62cqw;height:.62cqw;border-radius:50%;background:#d5aa36}
+    .phone-shot{display:block;object-fit:contain;filter:drop-shadow(0 2.5cqw 2.6cqw rgba(18,52,37,.18))}
+    .note{display:flex;align-items:center;gap:.75cqw;color:#52625a;font-size:1.05cqw;font-weight:800}
+    .note:before{content:"";width:.8cqw;height:.8cqw;border-radius:50%;border:.25cqw solid #175c43}
+    .line-art{position:absolute;border:1px solid rgba(23,92,67,.11);border-radius:50%;pointer-events:none}
+    .feature-card{padding:1.4cqw;border:1px solid #dbe6e0;border-radius:1.5cqw;background:#fff;box-shadow:0 .7cqw 1.7cqw rgba(28,73,53,.065)}
+    .feature-card strong{display:block;color:#175c43;font-size:1.35cqw;font-weight:900}
+    .feature-card span{display:block;margin-top:.48cqw;color:#69766f;font-size:.92cqw;line-height:1.45}
+
+    .cover .line-art.one{width:54cqw;height:54cqw;left:-23cqw;top:-26cqw}
+    .cover .line-art.two{width:38cqw;height:38cqw;right:-20cqw;bottom:-18cqw}
+    .cover-copy{position:relative;z-index:2;width:58cqw;margin-top:6.8cqw}
+    .cover h1{margin-top:1.3cqw}
+    .cover .lead{width:50cqw;margin-top:2cqw}
+    .cover .pill-row{margin-top:2.5cqw}
+    .cover .phone-shot{position:absolute;z-index:1;left:4cqw;bottom:-24cqw;width:40cqw;transform:rotate(-4deg)}
+    .cover .open-source{position:absolute;right:6.5cqw;bottom:6.5cqw;padding:1.25cqw 1.6cqw;border:1px solid #cfdfd7;border-radius:1.3cqw;background:#eaf3ef;color:#175c43;font-size:1.05cqw;font-weight:900}
+
+    .daily{background:#12523d;color:#fff}
+    .daily .brand-copy b,.daily .brand-copy span,.daily .counter{color:#fff}
+    .daily .brand img{box-shadow:0 .8cqw 2cqw rgba(0,0,0,.2)}
+    .daily .counter:before{background:#e0b84f}
+    .daily-copy{position:absolute;z-index:3;top:22cqw;right:6.5cqw;width:43cqw}
+    .daily .eyebrow{color:#e6c368}
+    .daily h2{margin-top:1.3cqw}
+    .daily .lead{margin-top:1.6cqw;color:rgba(255,255,255,.72)}
+    .daily .phone-shot{position:absolute;left:3.5cqw;bottom:-6cqw;width:45cqw;transform:rotate(-2deg);filter:drop-shadow(0 3cqw 3cqw rgba(0,0,0,.25))}
+    .daily-grid{display:grid;grid-template-columns:1fr 1fr;gap:1cqw;margin-top:3cqw}
+    .daily-grid div{padding:1.35cqw;border:1px solid rgba(255,255,255,.17);border-radius:1.4cqw;background:rgba(255,255,255,.08)}
+    .daily-grid b{display:block;font-size:1.25cqw}
+    .daily-grid span{display:block;margin-top:.45cqw;color:rgba(255,255,255,.62);font-size:.9cqw}
+    .daily .gold-line{position:absolute;right:0;bottom:8cqw;width:28cqw;height:1px;background:#d5aa36}
+
+    .plan{background:#f8fbf9}
+    .plan-copy{position:absolute;z-index:3;top:21cqw;right:6.5cqw;width:39cqw}
+    .plan h2{margin-top:1.3cqw}
+    .plan .lead{margin-top:1.5cqw}
+    .plan .phone-shot{position:absolute;left:1.5cqw;bottom:-3cqw;width:50cqw;transform:rotate(2deg)}
+    .plan-stack{display:grid;gap:1cqw;margin-top:2.6cqw}
+    .plan-stack .feature-card{display:flex;align-items:center;gap:1.2cqw}
+    .step-number{display:grid;width:3.5cqw;height:3.5cqw;flex:0 0 auto;place-items:center;border-radius:1.05cqw;background:#175c43;color:#fff;font-size:1.2cqw;font-weight:900}
+
+    .reader{background:#17231d;color:#fff}
+    .reader:after{content:"";position:absolute;inset:4.2cqw;border:1px solid rgba(214,170,53,.33);pointer-events:none}
+    .reader .brand-copy b,.reader .brand-copy span,.reader .counter{color:#fff}
+    .reader .counter:before{background:#d5aa36}
+    .reader-copy{position:absolute;z-index:3;top:22cqw;right:6.5cqw;width:41cqw}
+    .reader h2{margin-top:1.3cqw}
+    .reader .lead{margin-top:1.5cqw;color:rgba(255,255,255,.7)}
+    .reader .phone-shot{position:absolute;left:3cqw;bottom:-5cqw;width:44cqw;transform:rotate(-2.2deg);filter:drop-shadow(0 3cqw 3cqw rgba(0,0,0,.3))}
+    .reader-tools{display:grid;grid-template-columns:1fr 1fr;gap:.9cqw;margin-top:2.6cqw}
+    .reader-tools div{padding:1.2cqw;border-radius:1.25cqw;background:#f6f8f6;color:#173e2e}
+    .reader-tools b{display:block;font-size:1.15cqw}
+    .reader-tools span{display:block;margin-top:.35cqw;color:#69756f;font-size:.83cqw}
+
+    .insights{background:#eef5f1}
+    .insights-copy{position:absolute;z-index:3;top:19.8cqw;right:6.5cqw;width:40cqw}
+    .insights h2{margin-top:1.3cqw}
+    .insights .lead{margin-top:1.5cqw}
+    .insights .phone-shot{position:absolute;left:2.5cqw;bottom:-5cqw;width:48cqw;transform:rotate(-1.5deg)}
+    .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.8cqw;margin-top:2.6cqw}
+    .stat{padding:1.2cqw .7cqw;border-radius:1.25cqw;background:#fff;text-align:center;box-shadow:0 .65cqw 1.6cqw rgba(28,73,53,.07)}
+    .stat b{display:block;color:#175c43;font-size:2cqw;font-weight:950;direction:ltr}
+    .stat span{display:block;margin-top:.3cqw;color:#69766f;font-size:.78cqw;font-weight:750}
+
+    .together{background:#fff}
+    .together-head{position:relative;z-index:5;width:74cqw;margin:5.2cqw auto 0;text-align:center}
+    .together-head .eyebrow{justify-content:center}
+    .together-head .eyebrow:after{content:"";width:2.6cqw;height:2px;background:#d5aa36}
+    .together h2{margin-top:1.2cqw}
+    .together .lead{margin:1cqw auto 0;width:58cqw}
+    .phone-pair{position:absolute;left:50%;bottom:-26cqw;width:83cqw;height:82cqw;transform:translateX(-50%)}
+    .phone-pair img{position:absolute;width:42cqw}
+    .phone-pair img:first-child{right:1cqw;top:2cqw;transform:rotate(4deg)}
+    .phone-pair img:last-child{left:1cqw;top:0;transform:rotate(-4deg)}
+    .together .tag{position:absolute;z-index:6;bottom:5cqw;right:6.5cqw;padding:1.15cqw 1.4cqw;border-radius:1.3cqw;background:#175c43;color:#fff;font-size:1cqw;font-weight:900;box-shadow:0 .8cqw 1.8cqw rgba(23,92,67,.22)}
+
+    .privacy{background:#f7faf8}
+    .privacy-copy{position:absolute;z-index:5;top:20.5cqw;right:6.5cqw;width:41cqw}
+    .privacy h2{margin-top:1.3cqw}
+    .privacy .lead{margin-top:1.5cqw}
+    .privacy .phone-light{position:absolute;left:15cqw;bottom:-18cqw;width:39cqw;transform:rotate(5deg)}
+    .privacy .phone-dark{position:absolute;left:-5cqw;bottom:-12cqw;width:38cqw;transform:rotate(-6deg);filter:drop-shadow(0 3cqw 3cqw rgba(0,0,0,.24))}
+    .privacy-list{display:grid;gap:.8cqw;margin-top:2.4cqw}
+    .privacy-list div{display:flex;align-items:center;gap:.8cqw;color:#294238;font-size:1.05cqw;font-weight:820}
+    .privacy-list div:before{content:"✓";display:grid;width:2cqw;height:2cqw;place-items:center;border-radius:50%;background:#e4f0ea;color:#175c43;font-size:1cqw;font-weight:950}
+    .privacy .oss{position:absolute;right:6.5cqw;bottom:6cqw;color:#175c43;font-size:1cqw;font-weight:900}
+
+    .controls{display:flex;align-items:center;gap:10px;direction:ltr}
+    .nav-button{width:43px;height:43px;border:1px solid #34453c;border-radius:12px;background:#1c2822;color:#fff;font-size:21px;cursor:pointer}
+    .nav-button:hover{background:#27372f}
+    .dots{display:flex;gap:8px;padding:0 8px}
+    .dot{width:9px;height:9px;border:0;border-radius:50%;background:#506058;cursor:pointer;padding:0}
+    .dot.active{width:27px;border-radius:6px;background:#d5aa36}
+    .hint{color:#89968f;font-size:12px;direction:rtl}
+    html.export body{padding:0;background:#fff}
+    html.export .deck{width:min(100vw,100vh);height:min(100vw,100vh)}
+    html.export .controls,html.export .hint{display:none}
+    @media (prefers-reduced-motion:reduce){.slide.active{animation:none}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <main class="deck" id="deck" aria-label="عرض تطبيق وِردي">
+      <section class="slide cover active" data-title="وردك كل يوم">
+        <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">01 / 07</div>
+        <div class="line-art one"></div><div class="line-art two"></div>
+        <div class="cover-copy"><div class="eyebrow">رفيقك اليومي مع القرآن</div><h1><span class="green">وردك القرآني،</span><br><span class="gold">خطوة هادئة كل يوم.</span></h1><p class="lead">جلسات مرنة، مصحف محلي، وإحصاءات واضحة تساعدك على بناء عادة قراءة تستمر.</p><div class="pill-row"><span class="pill">جلسات مخصصة</span><span class="pill">قراءة بلا إنترنت</span><span class="pill">عربي وEnglish</span></div></div>
+        <img class="phone-shot" src="../screenshots/home-dashboard.jpg" alt="شاشة ورد اليوم">
+        <div class="open-source">مشروع مفتوح المصدر · بياناتك على جهازك</div>
+      </section>
+
+      <section class="slide daily" data-title="ورد اليوم">
+        <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">02 / 07</div>
+        <div class="daily-copy"><div class="eyebrow">واجهة تعرف ما تحتاجه الآن</div><h2>ابدأ يومك من<br><span class="gold">جلسة واضحة.</span></h2><p class="lead">الموعد القادم، موضع القراءة، تقدّم الختمة، وهدف اليوم في نظرة واحدة.</p><div class="daily-grid"><div><b>جلسة قادمة</b><span>موعد ومدة محددان</span></div><div><b>تقدّم دائري</b><span>النسبة والجزء الحالي</span></div><div><b>نشاط أسبوعي</b><span>دقائق كل يوم</span></div><div><b>متابعة فورية</b><span>من آخر صفحة</span></div></div></div>
+        <img class="phone-shot" src="../screenshots/home-dashboard.jpg" alt="لوحة ورد اليوم"><div class="gold-line"></div>
+      </section>
+
+      <section class="slide plan" data-title="خطة مرنة">
+        <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">03 / 07</div>
+        <div class="plan-copy"><div class="eyebrow">خطتك تتكيّف مع يومك</div><h2><span class="green">خطتك،</span><br><span class="gold">على وقتك.</span></h2><p class="lead">أنشئ من جلسة إلى خمس جلسات يومية، وحدد وقت كل جلسة ومدتها ونقطة البداية.</p><div class="plan-stack"><div class="feature-card"><span class="step-number">1</span><div><strong>اختر الموعد</strong><span>صباحًا، مساءً، أو بينهما</span></div></div><div class="feature-card"><span class="step-number">2</span><div><strong>حدّد المدة</strong><span>جلسة قصيرة تناسب جدولك</span></div></div><div class="feature-card"><span class="step-number">3</span><div><strong>تابع من موضعك</strong><span>من الصفحة التي توقفت عندها</span></div></div></div></div>
+        <img class="phone-shot" src="../screenshots/plan.jpg" alt="إدارة خطة الورد">
+      </section>
+
+      <section class="slide reader" data-title="المصحف المحلي">
+        <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">04 / 07</div>
+        <div class="reader-copy"><div class="eyebrow">قراءة مركّزة بلا تشتيت</div><h2>المصحف معك،<br><span class="gold">حتى دون إنترنت.</span></h2><p class="lead">انتقل بين الصفحات، احفظ العلامات، وافتح التفسير من نفس مصادر نسخة سطح المكتب.</p><div class="reader-tools"><div><b>6,236 آية</b><span>نص قرآني محلي</span></div><div><b>5 تفاسير</b><span>مصادر عربية مضمّنة</span></div><div><b>علامات</b><span>احفظ موضعك بسهولة</span></div><div><b>انتقال سريع</b><span>إلى الصفحة المطلوبة</span></div></div></div>
+        <img class="phone-shot" src="../screenshots/reader.jpg" alt="قارئ القرآن الكريم">
+      </section>
+
+      <section class="slide insights" data-title="إحصاءات القراءة">
+        <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">05 / 07</div>
+        <div class="insights-copy"><div class="eyebrow">تقدّم مفهوم ومحفّز</div><h2><span class="green">تقدّم تراه.</span><br><span class="gold">عادة تبنيها.</span></h2><p class="lead">تابع وقت القراءة والصفحات والأيام النشطة، واستكشف دقائق كل يوم من الرسم التفاعلي.</p><div class="stat-row"><div class="stat"><b>42</b><span>صفحة</span></div><div class="stat"><b>18</b><span>دقيقة</span></div><div class="stat"><b>7</b><span>أيام قراءة</span></div></div></div>
+        <img class="phone-shot" src="../screenshots/statistics.jpg" alt="إحصاءات القراءة">
+      </section>
+
+      <section class="slide together" data-title="الختمات الجماعية">
+        <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">06 / 07</div>
+        <div class="together-head"><div class="eyebrow">مع من تحب</div><h2><span class="green">اختموا القرآن</span> <span class="gold">معًا.</span></h2><p class="lead">أنشئ ختمة، شارك رمز الدعوة، وتابع إنجاز الأجزاء الثلاثين مع أفراد العائلة والأصدقاء.</p></div>
+        <div class="phone-pair"><img class="phone-shot" src="../screenshots/khatamat-groups.jpg" alt="مجموعات الختمات"><img class="phone-shot" src="../screenshots/khatma-detail.jpg" alt="تقدم الختمة الجماعية"></div>
+        <div class="tag">دعوات · أعضاء · 30 جزءًا · تقدّم جماعي</div>
+      </section>
+
+      <section class="slide privacy" data-title="الخصوصية والمظهر">
+        <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">07 / 07</div>
+        <div class="privacy-copy"><div class="eyebrow">مصمم لراحتك وخصوصيتك</div><h2><span class="green">تجربة تحترمك.</span><br><span class="gold">وبيانات تبقى لك.</span></h2><p class="lead">واجهة عربية وإنجليزية، مظهر يتبع نظام جهازك، وتخزين محلي دون حساب سحابي إلزامي.</p><div class="privacy-list"><div>فاتح، داكن، أو تلقائي</div><div>SQLite وSecureStore على الجهاز</div><div>نسخ احتياطي واستعادة باختيارك</div><div>لا إعلانات ولا تحليلات ولا تتبّع</div></div></div>
+        <img class="phone-shot phone-light" src="../screenshots/settings.jpg" alt="إعدادات المظهر"><img class="phone-shot phone-dark" src="../screenshots/home-dark.jpg" alt="المظهر الداكن">
+        <div class="oss">مبني على مشروع Wird المفتوح المصدر · MIT</div>
+      </section>
+    </main>
+    <div class="controls" aria-label="Carousel controls"><button class="nav-button" id="prev" aria-label="Previous">←</button><div class="dots" id="dots"></div><button class="nav-button" id="next" aria-label="Next">→</button></div>
+    <div class="hint">استخدم الأسهم أو اسحب للتنقل بين الشرائح</div>
+  </div>
+  <script>
+    const slides=[...document.querySelectorAll('.slide')],dots=document.getElementById('dots'),params=new URLSearchParams(location.search)
+    document.documentElement.classList.toggle('export',params.has('export'))
+    let current=Math.max(0,Math.min(slides.length-1,Number(params.get('slide')||1)-1)),startX=0
+    slides.forEach((slide,index)=>{const dot=document.createElement('button');dot.className='dot';dot.setAttribute('aria-label',`${index+1}: ${slide.dataset.title}`);dot.onclick=()=>show(index);dots.appendChild(dot)})
+    const dotItems=[...dots.children]
+    function show(index){current=(index+slides.length)%slides.length;slides.forEach((slide,i)=>slide.classList.toggle('active',i===current));dotItems.forEach((dot,i)=>dot.classList.toggle('active',i===current));history.replaceState(null,'',`${location.pathname}?slide=${current+1}${params.has('export')?'&export=1':''}`)}
+    document.getElementById('prev').onclick=()=>show(current-1);document.getElementById('next').onclick=()=>show(current+1)
+    addEventListener('keydown',event=>{if(event.key==='ArrowLeft')show(current-1);if(event.key==='ArrowRight')show(current+1)})
+    document.getElementById('deck').addEventListener('pointerdown',event=>startX=event.clientX)
+    document.getElementById('deck').addEventListener('pointerup',event=>{const delta=event.clientX-startX;if(Math.abs(delta)>45)show(current+(delta<0?1:-1))})
+    show(current)
+  </script>
+</body>
+</html>

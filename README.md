@@ -70,6 +70,24 @@ code and bundled third-party Quran resources.
 The product interface supports Arabic RTL and English LTR. These screens were
 captured from the repository's interactive virtual iPhone simulator.
 
+## Product Carousel
+
+The repository includes a seven-slide Arabic product presentation built from
+real simulator screens. It covers the daily dashboard, recurring plan, local
+Quran reader, animated insights, collaborative Khatamat, privacy, backups, and
+appearance modes.
+
+<p align="center">
+  <a href="docs/carousel/index.html">
+    <img src="docs/carousel/exports/01-cover.jpg" width="620" alt="Wirdy Arabic product carousel cover" />
+  </a>
+</p>
+
+Open [`docs/carousel/index.html`](docs/carousel/index.html) for the interactive
+carousel, or use the 1080 x 1080 JPEG files in
+[`docs/carousel/exports`](docs/carousel/exports) for social posts and product
+presentations.
+
 ## Product Features
 
 - Arabic RTL and English LTR interfaces with Latin numerals in both languages.
