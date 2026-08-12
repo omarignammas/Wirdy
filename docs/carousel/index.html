@@ -35,6 +35,9 @@
     .pill{display:flex;align-items:center;gap:.65cqw;min-height:3.5cqw;padding:0 1.25cqw;border:1px solid #dbe6e0;border-radius:99px;background:#fff;color:#175c43;font-size:1cqw;font-weight:850;box-shadow:0 .65cqw 1.5cqw rgba(28,73,53,.07)}
     .pill:before{content:"";width:.62cqw;height:.62cqw;border-radius:50%;background:#d5aa36}
     .phone-shot{display:block;object-fit:contain;filter:drop-shadow(0 2.5cqw 2.6cqw rgba(18,52,37,.18))}
+    .device-legacy{clip-path:inset(6.3% 9.7% .8% 9.7% round 10%)}
+    .device-captured{clip-path:inset(7.9% 9.9% 3.8% 9.9% round 10%)}
+    .device-plan{clip-path:inset(7.9% 9.9% .8% 9.9% round 10%)}
     .note{display:flex;align-items:center;gap:.75cqw;color:#52625a;font-size:1.05cqw;font-weight:800}
     .note:before{content:"";width:.8cqw;height:.8cqw;border-radius:50%;border:.25cqw solid #175c43}
     .line-art{position:absolute;border:1px solid rgba(23,92,67,.11);border-radius:50%;pointer-events:none}
@@ -141,45 +144,45 @@
         <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">01 / 07</div>
         <div class="line-art one"></div><div class="line-art two"></div>
         <div class="cover-copy"><div class="eyebrow">رفيقك اليومي مع القرآن</div><h1><span class="green">وردك القرآني،</span><br><span class="gold">خطوة هادئة كل يوم.</span></h1><p class="lead">جلسات مرنة، مصحف محلي، وإحصاءات واضحة تساعدك على بناء عادة قراءة تستمر.</p><div class="pill-row"><span class="pill">جلسات مخصصة</span><span class="pill">قراءة بلا إنترنت</span><span class="pill">عربي وEnglish</span></div></div>
-        <img class="phone-shot" src="../screenshots/home-dashboard.jpg" alt="شاشة ورد اليوم">
+        <img class="phone-shot device-legacy" src="../screenshots/home-dashboard.jpg" alt="شاشة ورد اليوم">
         <div class="open-source">مشروع مفتوح المصدر · بياناتك على جهازك</div>
       </section>
 
       <section class="slide daily" data-title="ورد اليوم">
         <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">02 / 07</div>
         <div class="daily-copy"><div class="eyebrow">واجهة تعرف ما تحتاجه الآن</div><h2>ابدأ يومك من<br><span class="gold">جلسة واضحة.</span></h2><p class="lead">الموعد القادم، موضع القراءة، تقدّم الختمة، وهدف اليوم في نظرة واحدة.</p><div class="daily-grid"><div><b>جلسة قادمة</b><span>موعد ومدة محددان</span></div><div><b>تقدّم دائري</b><span>النسبة والجزء الحالي</span></div><div><b>نشاط أسبوعي</b><span>دقائق كل يوم</span></div><div><b>متابعة فورية</b><span>من آخر صفحة</span></div></div></div>
-        <img class="phone-shot" src="../screenshots/home-dashboard.jpg" alt="لوحة ورد اليوم"><div class="gold-line"></div>
+        <img class="phone-shot device-legacy" src="../screenshots/home-dashboard.jpg" alt="لوحة ورد اليوم"><div class="gold-line"></div>
       </section>
 
       <section class="slide plan" data-title="خطة مرنة">
         <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">03 / 07</div>
         <div class="plan-copy"><div class="eyebrow">خطتك تتكيّف مع يومك</div><h2><span class="green">خطتك،</span><br><span class="gold">على وقتك.</span></h2><p class="lead">أنشئ من جلسة إلى خمس جلسات يومية، وحدد وقت كل جلسة ومدتها ونقطة البداية.</p><div class="plan-stack"><div class="feature-card"><span class="step-number">1</span><div><strong>اختر الموعد</strong><span>صباحًا، مساءً، أو بينهما</span></div></div><div class="feature-card"><span class="step-number">2</span><div><strong>حدّد المدة</strong><span>جلسة قصيرة تناسب جدولك</span></div></div><div class="feature-card"><span class="step-number">3</span><div><strong>تابع من موضعك</strong><span>من الصفحة التي توقفت عندها</span></div></div></div></div>
-        <img class="phone-shot" src="../screenshots/plan.jpg" alt="إدارة خطة الورد">
+        <img class="phone-shot device-plan" src="../screenshots/plan.jpg" alt="إدارة خطة الورد">
       </section>
 
       <section class="slide reader" data-title="المصحف المحلي">
         <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">04 / 07</div>
         <div class="reader-copy"><div class="eyebrow">قراءة مركّزة بلا تشتيت</div><h2>المصحف معك،<br><span class="gold">حتى دون إنترنت.</span></h2><p class="lead">انتقل بين الصفحات، احفظ العلامات، وافتح التفسير من نفس مصادر نسخة سطح المكتب.</p><div class="reader-tools"><div><b>6,236 آية</b><span>نص قرآني محلي</span></div><div><b>5 تفاسير</b><span>مصادر عربية مضمّنة</span></div><div><b>علامات</b><span>احفظ موضعك بسهولة</span></div><div><b>انتقال سريع</b><span>إلى الصفحة المطلوبة</span></div></div></div>
-        <img class="phone-shot" src="../screenshots/reader.jpg" alt="قارئ القرآن الكريم">
+        <img class="phone-shot device-captured" src="../screenshots/reader.jpg" alt="قارئ القرآن الكريم">
       </section>
 
       <section class="slide insights" data-title="إحصاءات القراءة">
         <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">05 / 07</div>
         <div class="insights-copy"><div class="eyebrow">تقدّم مفهوم ومحفّز</div><h2><span class="green">تقدّم تراه.</span><br><span class="gold">عادة تبنيها.</span></h2><p class="lead">تابع وقت القراءة والصفحات والأيام النشطة، واستكشف دقائق كل يوم من الرسم التفاعلي.</p><div class="stat-row"><div class="stat"><b>42</b><span>صفحة</span></div><div class="stat"><b>18</b><span>دقيقة</span></div><div class="stat"><b>7</b><span>أيام قراءة</span></div></div></div>
-        <img class="phone-shot" src="../screenshots/statistics.jpg" alt="إحصاءات القراءة">
+        <img class="phone-shot device-captured" src="../screenshots/statistics.jpg" alt="إحصاءات القراءة">
       </section>
 
       <section class="slide together" data-title="الختمات الجماعية">
         <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">06 / 07</div>
         <div class="together-head"><div class="eyebrow">مع من تحب</div><h2><span class="green">اختموا القرآن</span> <span class="gold">معًا.</span></h2><p class="lead">أنشئ ختمة، شارك رمز الدعوة، وتابع إنجاز الأجزاء الثلاثين مع أفراد العائلة والأصدقاء.</p></div>
-        <div class="phone-pair"><img class="phone-shot" src="../screenshots/khatamat-groups.jpg" alt="مجموعات الختمات"><img class="phone-shot" src="../screenshots/khatma-detail.jpg" alt="تقدم الختمة الجماعية"></div>
+        <div class="phone-pair"><img class="phone-shot device-legacy" src="../screenshots/khatamat-groups.jpg" alt="مجموعات الختمات"><img class="phone-shot device-legacy" src="../screenshots/khatma-detail.jpg" alt="تقدم الختمة الجماعية"></div>
         <div class="tag">دعوات · أعضاء · 30 جزءًا · تقدّم جماعي</div>
       </section>
 
       <section class="slide privacy" data-title="الخصوصية والمظهر">
         <div class="brand"><img src="../../assets/wird-app-icon.png" alt=""><div class="brand-copy"><b>وِردي</b><span>كل يوم، خطوة أقرب</span></div></div><div class="counter">07 / 07</div>
         <div class="privacy-copy"><div class="eyebrow">مصمم لراحتك وخصوصيتك</div><h2><span class="green">تجربة تحترمك.</span><br><span class="gold">وبيانات تبقى لك.</span></h2><p class="lead">واجهة عربية وإنجليزية، مظهر يتبع نظام جهازك، وتخزين محلي دون حساب سحابي إلزامي.</p><div class="privacy-list"><div>فاتح، داكن، أو تلقائي</div><div>SQLite وSecureStore على الجهاز</div><div>نسخ احتياطي واستعادة باختيارك</div><div>لا إعلانات ولا تحليلات ولا تتبّع</div></div></div>
-        <img class="phone-shot phone-light" src="../screenshots/settings.jpg" alt="إعدادات المظهر"><img class="phone-shot phone-dark" src="../screenshots/home-dark.jpg" alt="المظهر الداكن">
+        <img class="phone-shot device-captured phone-light" src="../screenshots/settings.jpg" alt="إعدادات المظهر"><img class="phone-shot device-captured phone-dark" src="../screenshots/home-dark.jpg" alt="المظهر الداكن">
         <div class="oss">مبني على مشروع Wird المفتوح المصدر · MIT</div>
       </section>
     </main>
