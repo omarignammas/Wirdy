@@ -49,9 +49,9 @@ explicitly exports a backup.
     <td align="center"><strong>Recurring Plan</strong></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><img src="docs/screenshots/iphone/home-dashboard.png" width="250" alt="Wirdy Arabic home dashboard with daily reading progress" /></td>
-    <td align="center" width="33%"><img src="docs/screenshots/iphone/reader.png" width="250" alt="Wirdy local Quran reader with bookmarks and Tafsir tools" /></td>
-    <td align="center" width="33%"><img src="docs/screenshots/iphone/plan.png" width="250" alt="Wirdy recurring reading plan management" /></td>
+    <td><img src="docs/screenshots/home-dashboard.jpg" alt="Wirdy Arabic home dashboard with daily reading progress" /></td>
+    <td><img src="docs/screenshots/reader.jpg" alt="Wirdy local Quran reader with bookmarks and Tafsir tools" /></td>
+    <td><img src="docs/screenshots/plan.jpg" alt="Wirdy recurring reading plan management" /></td>
   </tr>
   <tr>
     <td align="center">Next session, daily goal, Khatma progress, and weekly rhythm</td>
@@ -69,9 +69,9 @@ explicitly exports a backup.
     <td align="center"><strong>Group Progress</strong></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><img src="docs/screenshots/iphone/statistics.png" width="250" alt="Wirdy animated reading statistics and weekly activity" /></td>
-    <td align="center" width="33%"><img src="docs/screenshots/iphone/khatamat-groups.png" width="250" alt="Wirdy collaborative Khatamat list on iPhone" /></td>
-    <td align="center" width="33%"><img src="docs/screenshots/iphone/khatma-detail.png" width="250" alt="Wirdy Khatma group detail and progress on iPhone" /></td>
+    <td><img src="docs/screenshots/statistics.jpg" alt="Wirdy animated reading statistics and weekly activity" /></td>
+    <td><img src="docs/screenshots/khatamat-groups.jpg" alt="Wirdy collaborative Khatamat list on iPhone" /></td>
+    <td><img src="docs/screenshots/khatma-detail.jpg" alt="Wirdy Khatma group detail and progress on iPhone" /></td>
   </tr>
   <tr>
     <td align="center">Reading time, pages, active days, and interactive charts</td>
@@ -88,8 +88,8 @@ explicitly exports a backup.
     <td align="center"><strong>Dark Appearance</strong></td>
   </tr>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/iphone/settings.png" width="250" alt="Wirdy reading and appearance settings" /></td>
-    <td align="center" width="50%"><img src="docs/screenshots/iphone/home-dark.png" width="250" alt="Wirdy home dashboard in dark appearance" /></td>
+    <td><img src="docs/screenshots/settings.jpg" alt="Wirdy reading and appearance settings" /></td>
+    <td><img src="docs/screenshots/home-dark.jpg" alt="Wirdy home dashboard in dark appearance" /></td>
   </tr>
   <tr>
     <td align="center">System, Light, and Dark modes with reader controls</td>
