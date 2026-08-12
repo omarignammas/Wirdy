@@ -40,16 +40,60 @@ explicitly exports a backup.
 
 ## Screenshots
 
+### Daily Reading
+
 <table>
   <tr>
     <td align="center"><strong>Reading Dashboard</strong></td>
+    <td align="center"><strong>Quran Reader</strong></td>
+    <td align="center"><strong>Recurring Plan</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/home-dashboard.jpg" alt="Wirdy Arabic home dashboard with daily reading progress" /></td>
+    <td><img src="docs/screenshots/reader.jpg" alt="Wirdy local Quran reader with bookmarks and Tafsir tools" /></td>
+    <td><img src="docs/screenshots/plan.jpg" alt="Wirdy recurring reading plan management" /></td>
+  </tr>
+  <tr>
+    <td align="center">Next session, daily goal, Khatma progress, and weekly rhythm</td>
+    <td align="center">Offline Mushaf, page navigation, bookmarks, and Tafsir access</td>
+    <td align="center">Flexible session times, durations, and reading position</td>
+  </tr>
+</table>
+
+### Progress And Community
+
+<table>
+  <tr>
+    <td align="center"><strong>Reading Insights</strong></td>
     <td align="center"><strong>Collaborative Khatamat</strong></td>
     <td align="center"><strong>Group Progress</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/home-dashboard.jpg" alt="Wirdy Arabic home dashboard on iPhone" /></td>
+    <td><img src="docs/screenshots/statistics.jpg" alt="Wirdy animated reading statistics and weekly activity" /></td>
     <td><img src="docs/screenshots/khatamat-groups.jpg" alt="Wirdy collaborative Khatamat list on iPhone" /></td>
     <td><img src="docs/screenshots/khatma-detail.jpg" alt="Wirdy Khatma group detail and progress on iPhone" /></td>
+  </tr>
+  <tr>
+    <td align="center">Reading time, pages, active days, and interactive charts</td>
+    <td align="center">Searchable groups, members, deadlines, and invite codes</td>
+    <td align="center">Thirty-Juz completion tracking and group contributions</td>
+  </tr>
+</table>
+
+### Personalization
+
+<table>
+  <tr>
+    <td align="center"><strong>Reading Settings</strong></td>
+    <td align="center"><strong>Dark Appearance</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings.jpg" alt="Wirdy reading and appearance settings" /></td>
+    <td><img src="docs/screenshots/home-dark.jpg" alt="Wirdy home dashboard in dark appearance" /></td>
+  </tr>
+  <tr>
+    <td align="center">System, Light, and Dark modes with reader controls</td>
+    <td align="center">A complete low-light interface with native status styling</td>
   </tr>
 </table>
 
