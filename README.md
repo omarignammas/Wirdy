@@ -24,10 +24,10 @@
 
 ## Overview
 
-Wirdy adapts the complete Wird desktop reading workflow into an iOS-inspired
-Expo application. It combines recurring reading sessions, a local Mushaf,
-progress tracking, statistics, Tafsir sources, secure local authentication, and
-portable backups in a single offline-capable project.
+Wirdy is a standalone bilingual Quran reading application built with Expo and
+React Native. It combines recurring reading sessions, a local Mushaf, progress
+tracking, statistics, Tafsir sources, secure local authentication, and portable
+backups in one offline-capable mobile product.
 
 The repository contains both layers of the mobile product:
 
@@ -37,20 +37,6 @@ The repository contains both layers of the mobile product:
 
 There is no required remote API. User data stays on the device unless the user
 explicitly exports a backup.
-
-## Open-Source Foundation
-
-Wirdy is a mobile adaptation built from and inspired by the open-source
-[Wird project by abu-ayesh](https://github.com/abu-ayesh/wird-project). The
-upstream project is distributed under the MIT License, with copyright attributed
-to Mohammad Zhour. Its copyright and permission notice are preserved in this
-repository.
-
-Wirdy's Expo interface, mobile SQLite repository, local authentication flow,
-virtual iPhone simulator, and mobile interaction design adapt the upstream
-desktop experience for iOS and Android. See
-[LICENSE_SCOPE.md](LICENSE_SCOPE.md) for the boundary between project-owned
-code and bundled third-party Quran resources.
 
 ## Screenshots
 
@@ -92,8 +78,8 @@ presentations.
 
 - Arabic RTL and English LTR interfaces with Latin numerals in both languages.
 - Persistent System, Light, and Dark appearance modes with native status-bar
-  adaptation.
-- iOS-inspired navigation, bottom sheets, segmented controls, switches, and
+  behavior.
+- iOS-style navigation, bottom sheets, segmented controls, switches, and
   accessible touch targets.
 - Animated circular progress and interactive weekly reading charts.
 - Home dashboard with greeting, avatar, notifications, next session, daily
@@ -128,8 +114,8 @@ flowchart TD
 
 ### User Database
 
-`src/services/mobile-backend.ts` owns the local backend and preserves the
-desktop-compatible data model:
+`src/services/mobile-backend.ts` owns the application's purpose-built local data
+model:
 
 | Table | Responsibility |
 | --- | --- |
@@ -162,8 +148,8 @@ identity or multi-device synchronization service.
 
 ## Bundled Sources
 
-The same read-only source set used by the desktop application is included under
-`assets/` and packaged by Metro:
+The read-only Quran, Mushaf, and Tafsir source set is included under `assets/`
+and packaged by Metro:
 
 | Source | Purpose |
 | --- | --- |
@@ -288,9 +274,14 @@ integrity verification.
 ## License
 
 Project-owned source code and documentation are provided under the
-[MIT License](LICENSE). Wirdy preserves attribution to the upstream
-[abu-ayesh/wird-project](https://github.com/abu-ayesh/wird-project). Quran text,
-Mushaf layout data, Tafsir databases, and other third-party resources remain
-subject to their original terms. Review
+[MIT License](LICENSE). Quran text, Mushaf layout data, Tafsir databases, and
+other third-party resources remain subject to their original terms. Review
 [LICENSE_SCOPE.md](LICENSE_SCOPE.md) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
+
+## Thanks
+
+Special thanks to [abu-ayesh](https://github.com/abu-ayesh) and the contributors
+to the open-source [Wird project](https://github.com/abu-ayesh/wird-project).
+Their work is acknowledged here with appreciation. The applicable copyright and
+MIT permission notice are preserved in this repository's licensing files.
