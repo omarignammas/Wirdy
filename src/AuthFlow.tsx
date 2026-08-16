@@ -1,5 +1,5 @@
 import { type ComponentProps, useMemo, useState } from 'react'
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Image, type ImageSourcePropType, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { signIn, signUp, type WirdProfile } from './services/auth-service'
@@ -38,6 +38,13 @@ const words = {
     editLater: 'You can edit your name and photo later', plan: 'Plan your Wird', reader: 'Mushaf and Tafsir', stats: 'Reading insights', reminder: 'Gentle reminders',
     back: 'Back',
   },
+}
+
+const onboardingImages = {
+  reader: require('../assets/onboarding/reader.png'),
+  plan: require('../assets/onboarding/plan.png'),
+  reminder: require('../assets/onboarding/reminder.png'),
+  stats: require('../assets/onboarding/stats.png'),
 }
 
 export function AuthFlow({ initialMode = 'onboarding', language, darkMode, onLanguage, onAuthenticated }: { initialMode?: Exclude<Mode, 'authChoice'>; language: Language; darkMode: boolean; onLanguage: (language: Language) => void; onAuthenticated: (profile: WirdProfile) => void }) {
@@ -84,10 +91,10 @@ export function AuthFlow({ initialMode = 'onboarding', language, darkMode, onLan
       <ScrollView contentContainerStyle={mode === 'onboarding' ? styles.onboardingContent : styles.authContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {mode === 'onboarding' && <>
           <View style={styles.visualStage}>
-            <FeatureCard icon="calendar-outline" label={t.plan} styles={styles} colors={colors} position="top" />
-            <FeatureCard icon="book-outline" label={t.reader} styles={styles} colors={colors} position="left" />
-            <FeatureCard icon="bar-chart-outline" label={t.stats} styles={styles} colors={colors} position="right" />
-            <FeatureCard icon="notifications-outline" label={t.reminder} styles={styles} colors={colors} position="bottom" />
+            <VisualCard image={onboardingImages.plan} label={t.plan} styles={styles} position="top" />
+            <VisualCard image={onboardingImages.reader} label={t.reader} styles={styles} position="left" />
+            <VisualCard image={onboardingImages.stats} label={t.stats} styles={styles} position="right" />
+            <VisualCard image={onboardingImages.reminder} label={t.reminder} styles={styles} position="bottom" />
             <View style={styles.logoPlate}><Image source={require('../assets/wird-app-icon.png')} style={styles.logo} /></View>
           </View>
           <View style={[styles.heroCopy, rtl && styles.rtlCopy]}>
@@ -152,10 +159,9 @@ function Field({ icon, label, rtl, styles, colors, ...props }: { icon: keyof typ
   </View>
 }
 
-function FeatureCard({ icon, label, styles, colors, position }: { icon: keyof typeof Ionicons.glyphMap; label: string; styles: AuthStyles; colors: AuthColors; position: 'top' | 'left' | 'right' | 'bottom' }) {
-  return <View style={[styles.featureCard, position === 'top' && styles.featureTop, position === 'left' && styles.featureLeft, position === 'right' && styles.featureRight, position === 'bottom' && styles.featureBottom]}>
-    <Ionicons name={icon} size={16} color={colors.primary} />
-    <Text style={styles.featureText}>{label}</Text>
+function VisualCard({ image, label, styles, position }: { image: ImageSourcePropType; label: string; styles: AuthStyles; position: 'top' | 'left' | 'right' | 'bottom' }) {
+  return <View accessibilityLabel={label} style={[styles.visualCard, position === 'top' && styles.visualTop, position === 'left' && styles.visualLeft, position === 'right' && styles.visualRight, position === 'bottom' && styles.visualBottom]}>
+    <Image source={image} style={styles.visualImage} resizeMode="cover" />
   </View>
 }
 
@@ -180,15 +186,15 @@ function makeStyles(colors: AuthColors, rtl: boolean) {
     langText: { color: colors.primary, fontSize: 17, fontWeight: '700' },
     onboardingContent: { flexGrow: 1, justifyContent: 'space-between', paddingHorizontal: 28, paddingTop: 14, paddingBottom: 26 },
     authContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28, paddingTop: 12, paddingBottom: 28 },
-    visualStage: { minHeight: 330, alignItems: 'center', justifyContent: 'center' },
-    logoPlate: { width: 136, height: 136, alignItems: 'center', justifyContent: 'center', borderRadius: 44, backgroundColor: colors.primary, shadowColor: colors.shadow, shadowOpacity: 1, shadowRadius: 24, shadowOffset: { width: 0, height: 14 } },
+    visualStage: { minHeight: 360, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+    logoPlate: { zIndex: 3, width: 136, height: 136, alignItems: 'center', justifyContent: 'center', borderRadius: 44, backgroundColor: colors.primary, shadowColor: colors.shadow, shadowOpacity: 1, shadowRadius: 24, shadowOffset: { width: 0, height: 14 } },
     logo: { width: 112, height: 112, borderRadius: 34 },
-    featureCard: { position: 'absolute', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.pill, shadowColor: colors.shadow, shadowOpacity: 1, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
-    featureTop: { top: 20, alignSelf: 'center' },
-    featureLeft: { left: -20, top: 138 },
-    featureRight: { right: -18, bottom: 68 },
-    featureBottom: { bottom: 10, alignSelf: 'center' },
-    featureText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
+    visualCard: { position: 'absolute', zIndex: 1, width: 128, height: 104, overflow: 'hidden', borderRadius: 28, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, shadowColor: colors.shadow, shadowOpacity: 1, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
+    visualTop: { top: 2, alignSelf: 'center', width: 136, height: 104 },
+    visualLeft: { left: 0, top: 122, width: 128, height: 112 },
+    visualRight: { right: 0, top: 184, width: 130, height: 112 },
+    visualBottom: { bottom: 2, alignSelf: 'center', width: 146, height: 104 },
+    visualImage: { width: '100%', height: '100%' },
     heroCopy: { alignItems: 'flex-start' },
     rtlCopy: { alignItems: 'flex-end' },
     brand: { color: colors.primary, fontSize: rtl ? 30 : 27, fontWeight: '700', textAlign: align, writingDirection: writing },
