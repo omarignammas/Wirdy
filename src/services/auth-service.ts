@@ -1,11 +1,14 @@
 import * as Crypto from 'expo-crypto'
 import * as SecureStore from 'expo-secure-store'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Platform } from 'react-native'
 
 export type WirdProfile = {
   id: string
   name: string
   email: string
   createdAt: string
+  avatarUri?: string
 }
 
 type StoredAccount = WirdProfile & {
@@ -16,6 +19,28 @@ type StoredAccount = WirdProfile & {
 const ACCOUNT_KEY = 'wird.auth.account.v1'
 const SESSION_KEY = 'wird.auth.session.v1'
 
+async function getStoredItem(key: string) {
+  return Platform.OS === 'web' ? AsyncStorage.getItem(key) : SecureStore.getItemAsync(key)
+}
+
+async function setStoredItem(key: string, value: string) {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(key, value)
+    return
+  }
+  await SecureStore.setItemAsync(key, value, {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  })
+}
+
+async function deleteStoredItem(key: string) {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem(key)
+    return
+  }
+  await SecureStore.deleteItemAsync(key)
+}
+
 function bytesToHex(bytes: Uint8Array) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
@@ -25,14 +50,14 @@ async function hashPassword(password: string, salt: string) {
 }
 
 function publicProfile(account: StoredAccount): WirdProfile {
-  const { id, name, email, createdAt } = account
-  return { id, name, email, createdAt }
+  const { id, name, email, createdAt, avatarUri } = account
+  return { id, name, email, createdAt, avatarUri }
 }
 
 export async function getCurrentProfile(): Promise<WirdProfile | null> {
   const [accountJson, sessionId] = await Promise.all([
-    SecureStore.getItemAsync(ACCOUNT_KEY),
-    SecureStore.getItemAsync(SESSION_KEY),
+    getStoredItem(ACCOUNT_KEY),
+    getStoredItem(SESSION_KEY),
   ])
   if (!accountJson || !sessionId) return null
   const account = JSON.parse(accountJson) as StoredAccount
@@ -45,7 +70,7 @@ export async function signUp(name: string, email: string, password: string): Pro
   if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) throw new Error('email')
   if (password.length < 8) throw new Error('password')
 
-  const existingJson = await SecureStore.getItemAsync(ACCOUNT_KEY)
+  const existingJson = await getStoredItem(ACCOUNT_KEY)
   if (existingJson) {
     const existing = JSON.parse(existingJson) as StoredAccount
     if (existing.email === normalizedEmail) throw new Error('exists')
@@ -60,29 +85,36 @@ export async function signUp(name: string, email: string, password: string): Pro
     salt,
     passwordHash: await hashPassword(password, salt),
   }
-  await SecureStore.setItemAsync(ACCOUNT_KEY, JSON.stringify(account), {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  })
-  await SecureStore.setItemAsync(SESSION_KEY, account.id, {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  })
+  await setStoredItem(ACCOUNT_KEY, JSON.stringify(account))
+  await setStoredItem(SESSION_KEY, account.id)
   return publicProfile(account)
 }
 
 export async function signIn(email: string, password: string): Promise<WirdProfile> {
-  const accountJson = await SecureStore.getItemAsync(ACCOUNT_KEY)
+  const accountJson = await getStoredItem(ACCOUNT_KEY)
   if (!accountJson) throw new Error('invalid')
   const account = JSON.parse(accountJson) as StoredAccount
   const passwordHash = await hashPassword(password, account.salt)
   if (account.email !== email.trim().toLowerCase() || account.passwordHash !== passwordHash) {
     throw new Error('invalid')
   }
-  await SecureStore.setItemAsync(SESSION_KEY, account.id, {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  })
+  await setStoredItem(SESSION_KEY, account.id)
+  return publicProfile(account)
+}
+
+export async function updateProfile(updates: { name?: string; avatarUri?: string | null }): Promise<WirdProfile> {
+  const accountJson = await getStoredItem(ACCOUNT_KEY)
+  if (!accountJson) throw new Error('missing')
+  const account = JSON.parse(accountJson) as StoredAccount
+  if (updates.name !== undefined) {
+    if (updates.name.trim().length < 2) throw new Error('name')
+    account.name = updates.name.trim()
+  }
+  if (updates.avatarUri !== undefined) account.avatarUri = updates.avatarUri ?? undefined
+  await setStoredItem(ACCOUNT_KEY, JSON.stringify(account))
   return publicProfile(account)
 }
 
 export async function signOut() {
-  await SecureStore.deleteItemAsync(SESSION_KEY)
+  await deleteStoredItem(SESSION_KEY)
 }

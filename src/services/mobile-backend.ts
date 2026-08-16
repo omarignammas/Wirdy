@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite'
 import * as SQLite from 'expo-sqlite'
+import { Platform } from 'react-native'
 
 export type QuranVerse = {
   globalNumber: number
@@ -147,6 +148,12 @@ export const DESKTOP_SOURCE_ASSETS = {
   },
 } as const
 
+const WEB_DATABASE_SESSION_ID = Platform.OS === 'web'
+  ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  : ''
+const USER_DATABASE_NAME = Platform.OS === 'web' ? `wird-user-${WEB_DATABASE_SESSION_ID}.db` : 'wird-user.db'
+const IS_WEB_SIMULATOR = Platform.OS === 'web'
+
 const USER_SCHEMA = `
   PRAGMA foreign_keys = ON;
   PRAGMA journal_mode = WAL;
@@ -274,6 +281,156 @@ function displayTime(scheduledTime: string, postponedUntil: string | null) {
   const date = new Date(postponedUntil)
   if (!Number.isFinite(date.getTime())) return scheduledTime.slice(0, 5)
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+type WebKhatmaRecord = MobileKhatmaGroup & {
+  members: MobileKhatmaMember[]
+  completedJuz: number[]
+}
+
+type WebSimulatorState = {
+  plan: MobileSnapshot['plan']
+  progress: MobileSnapshot['progress']
+  settings: MobileSettings
+  sessions: MobileSession[]
+  khatmas: WebKhatmaRecord[]
+  appState: unknown | null
+}
+
+let webSimulatorState: WebSimulatorState | null = null
+
+const WEB_QURAN_PAGE_32: QuranVerse[] = [
+  { globalNumber: 203, surahNumber: 2, number: 203, text: 'وَٱذْكُرُوا۟ ٱللَّهَ فِىٓ أَيَّامٍ مَّعْدُودَٰتٍ ۚ فَمَن تَعَجَّلَ فِى يَوْمَيْنِ فَلَآ إِثْمَ عَلَيْهِ وَمَن تَأَخَّرَ فَلَآ إِثْمَ عَلَيْهِ لِمَنِ ٱتَّقَىٰ', surahName: 'البقرة', page: 32, juz: 2 },
+  { globalNumber: 204, surahNumber: 2, number: 204, text: 'وَمِنَ ٱلنَّاسِ مَن يُعْجِبُكَ قَوْلُهُۥ فِى ٱلْحَيَوٰةِ ٱلدُّنْيَا وَيُشْهِدُ ٱللَّهَ عَلَىٰ مَا فِى قَلْبِهِۦ وَهُوَ أَلَدُّ ٱلْخِصَامِ', surahName: 'البقرة', page: 32, juz: 2 },
+  { globalNumber: 205, surahNumber: 2, number: 205, text: 'وَإِذَا تَوَلَّىٰ سَعَىٰ فِى ٱلْأَرْضِ لِيُفْسِدَ فِيهَا وَيُهْلِكَ ٱلْحَرْثَ وَٱلنَّسْلَ ۗ وَٱللَّهُ لَا يُحِبُّ ٱلْفَسَادَ', surahName: 'البقرة', page: 32, juz: 2 },
+  { globalNumber: 206, surahNumber: 2, number: 206, text: 'وَإِذَا قِيلَ لَهُ ٱتَّقِ ٱللَّهَ أَخَذَتْهُ ٱلْعِزَّةُ بِٱلْإِثْمِ ۚ فَحَسْبُهُۥ جَهَنَّمُ وَلَبِئْسَ ٱلْمِهَادُ', surahName: 'البقرة', page: 32, juz: 2 },
+  { globalNumber: 207, surahNumber: 2, number: 207, text: 'وَمِنَ ٱلنَّاسِ مَن يَشْرِى نَفْسَهُ ٱبْتِغَآءَ مَرْضَاتِ ٱللَّهِ ۗ وَٱللَّهُ رَءُوفٌۢ بِٱلْعِبَادِ', surahName: 'البقرة', page: 32, juz: 2 },
+  { globalNumber: 208, surahNumber: 2, number: 208, text: 'يَٰٓأَيُّهَا ٱلَّذِينَ ءَامَنُوا۟ ٱدْخُلُوا۟ فِى ٱلسِّلْمِ كَآفَّةً وَلَا تَتَّبِعُوا۟ خُطُوَٰتِ ٱلشَّيْطَٰنِ ۚ إِنَّهُۥ لَكُمْ عَدُوٌّ مُّبِينٌ', surahName: 'البقرة', page: 32, juz: 2 },
+]
+
+function createWebSessions(planTimes: MobilePlanSession[]): MobileSession[] {
+  const today = dateKey()
+  const now = new Date().toISOString()
+  const history: MobileSession[] = [
+    { id: 101, readingTimeId: 1, order: 1, name: 'Wird session 1', time: '08:00', scheduledDate: shiftedDate(-6), duration: 5, page: 25, status: 'completed', enabled: true, postponedUntil: null, activeSeconds: 240, startGlobalAyah: 180, endGlobalAyah: 192 },
+    { id: 102, readingTimeId: 1, order: 1, name: 'Wird session 1', time: '08:30', scheduledDate: shiftedDate(-5), duration: 5, page: 26, status: 'ended_early', enabled: true, postponedUntil: null, activeSeconds: 180, startGlobalAyah: 193, endGlobalAyah: 201 },
+    { id: 103, readingTimeId: 1, order: 1, name: 'Wird session 1', time: '09:00', scheduledDate: shiftedDate(-3), duration: 5, page: 29, status: 'completed', enabled: true, postponedUntil: null, activeSeconds: 300, startGlobalAyah: 202, endGlobalAyah: 209 },
+  ]
+  const todaySessions = planTimes.map((session, index) => ({
+    id: index + 1,
+    readingTimeId: session.id ?? index + 1,
+    order: session.order,
+    name: session.name || `Wird session ${session.order}`,
+    time: session.time,
+    scheduledDate: today,
+    duration: session.duration,
+    page: 32,
+    status: index < 2 ? 'ended_early' as MobileSessionStatus : 'scheduled' as MobileSessionStatus,
+    enabled: session.enabled,
+    postponedUntil: null,
+    activeSeconds: index === 0 ? 60 : 0,
+    startGlobalAyah: 210,
+    endGlobalAyah: index < 2 ? 210 : null,
+  }))
+  return [...todaySessions, ...history].map((session) => ({ ...session, postponedUntil: session.postponedUntil ?? null, scheduledDate: session.scheduledDate || now.slice(0, 10) }))
+}
+
+function createWebSimulatorState(): WebSimulatorState {
+  const planTimes: MobilePlanSession[] = [
+    { id: 1, order: 1, name: 'Wird session 1', time: '11:35', duration: 5, enabled: true, repeatDays: [0, 1, 2, 3, 4, 5, 6] },
+    { id: 2, order: 2, name: 'Wird session 2', time: '13:18', duration: 5, enabled: true, repeatDays: [0, 1, 2, 3, 4, 5, 6] },
+    { id: 3, order: 3, name: 'Wird session 3', time: '15:30', duration: 10, enabled: true, repeatDays: [0, 1, 2, 3, 4, 5, 6] },
+  ]
+  const now = new Date().toISOString()
+  return {
+    plan: { id: 1, startPage: 32, sessionsPerDay: 3, repeatDays: [0, 1, 2, 3, 4, 5, 6], times: planTimes },
+    progress: { currentSurah: 2, currentAyah: 203, currentPage: 32, currentGlobalAyah: 210, percent: 3.4 },
+    settings: {
+      theme: 'system', quranFontSize: 28, mushafZoom: 100, readerPageMode: 'auto', readerFitMode: 'height',
+      showAyahNumbers: true, lastOpenedPage: 32, notificationsEnabled: true, preSessionWidgetEnabled: true,
+      spiritualAudioEnabled: true, spiritualMessagesEnabled: true, smartSuggestionsEnabled: true, spiritualContentMode: 'all',
+    },
+    sessions: createWebSessions(planTimes),
+    khatmas: [
+      webKhatmaRecord(1, 'أصدقاء الخير', 'Friends of Good', 'KHAIR20', 12, 20, 8, now),
+      webKhatmaRecord(2, 'ختمة العائلة', 'Family Khatma', 'FAMILY14', 8, 14, 12, now),
+      webKhatmaRecord(3, 'رفاق القرآن', 'Quran Companions', 'QURAN26', 16, 26, 5, now),
+    ],
+    appState: null,
+  }
+}
+
+function webKhatmaRecord(id: number, nameAr: string, nameEn: string, inviteCodeValue: string, memberCount: number, completedParts: number, daysRemaining: number, createdAt: string): WebKhatmaRecord {
+  const members = Array.from({ length: memberCount }, (_, index) => ({
+    id: id * 100 + index + 1,
+    displayName: index === 0 ? 'Abdulqader Saif' : `Member ${index + 1}`,
+    avatarInitial: index === 0 ? 'A' : String(index + 1),
+    role: index === 0 ? 'owner' as const : 'member' as const,
+    completedParts: Math.floor(completedParts / memberCount) + (index < completedParts % memberCount ? 1 : 0),
+  }))
+  return {
+    id, nameAr, nameEn,
+    descriptionAr: 'رحلة جماعية هادئة مع كتاب الله',
+    descriptionEn: 'A calm shared journey with the Quran',
+    inviteCode: inviteCodeValue, memberCount, completedParts, totalParts: 30, daysRemaining,
+    scheduleAr: 'بعد كل صلاة', scheduleEn: 'After every prayer',
+    status: completedParts >= 30 ? 'completed' : 'active',
+    createdAt, members, completedJuz: Array.from({ length: completedParts }, (_, index) => index + 1),
+  }
+}
+
+function webState() {
+  if (!webSimulatorState) webSimulatorState = createWebSimulatorState()
+  return webSimulatorState
+}
+
+function webKhatmaSummary(group: WebKhatmaRecord): MobileKhatmaGroup {
+  return {
+    id: group.id, nameAr: group.nameAr, nameEn: group.nameEn,
+    descriptionAr: group.descriptionAr, descriptionEn: group.descriptionEn, inviteCode: group.inviteCode,
+    memberCount: group.members.length, completedParts: group.completedJuz.length, totalParts: 30,
+    daysRemaining: group.daysRemaining, scheduleAr: group.scheduleAr, scheduleEn: group.scheduleEn,
+    status: group.completedJuz.length >= 30 ? 'completed' : 'active', createdAt: group.createdAt,
+  }
+}
+
+function webKhatmaDetail(group: WebKhatmaRecord): MobileKhatmaDetail {
+  return {
+    ...webKhatmaSummary(group),
+    members: group.members.map((member) => ({ ...member })),
+    completedJuz: [...group.completedJuz],
+  }
+}
+
+function webStatistics(state = webState()): MobileStatistics {
+  const finished = state.sessions.filter((session) => ['completed', 'ended_early'].includes(session.status))
+  const weeklyTrend = Array.from({ length: 7 }, (_, index) => {
+    const date = shiftedDate(index - 6)
+    const sessions = finished.filter((session) => session.scheduledDate === date)
+    const minutes = Math.floor(sessions.reduce((sum, session) => sum + session.activeSeconds, 0) / 60)
+    return { date, minutes, pages: Math.max(0, Math.round(minutes / 4)), sessions: sessions.length }
+  })
+  return {
+    completedSessions: finished.filter((session) => session.status === 'completed').length,
+    incompleteSessions: state.sessions.filter((session) => ['ended_early', 'skipped'].includes(session.status)).length,
+    totalMinutes: Math.floor(finished.reduce((sum, session) => sum + session.activeSeconds, 0) / 60),
+    readingDays: new Set(finished.filter((session) => session.activeSeconds > 0).map((session) => session.scheduledDate)).size,
+    ayahsRead: finished.reduce((sum, session) => sum + Math.max(0, Number(session.endGlobalAyah ?? 0) - Number(session.startGlobalAyah ?? 0) + 1), 0),
+    approximatePages: 42,
+    weeklyTrend,
+  }
+}
+
+function webSnapshot(): MobileSnapshot {
+  const state = webState()
+  return {
+    plan: { ...state.plan, times: state.plan.times.map((session) => ({ ...session, repeatDays: [...(session.repeatDays ?? [])] })) },
+    progress: { ...state.progress },
+    settings: { ...state.settings },
+    sessions: state.sessions.map((session) => ({ ...session })),
+    statistics: webStatistics(state),
+    khatmas: state.khatmas.map(webKhatmaSummary),
+  }
 }
 
 async function transaction(work: () => Promise<void>) {
@@ -438,7 +595,11 @@ async function ensureTodaySessions() {
 }
 
 export async function initializeMobileBackend(quranDatabase: SQLiteDatabase): Promise<BackendStatus> {
-  userDatabase = await SQLite.openDatabaseAsync('wird-user.db')
+  if (IS_WEB_SIMULATOR) {
+    webState()
+    return { ready: true, quranAyahs: 6236, bundledSources: 7, source: 'desktop-quran.db' }
+  }
+  userDatabase = await SQLite.openDatabaseAsync(USER_DATABASE_NAME)
   await userDatabase.execAsync(USER_SCHEMA)
   await seedDesktopSample()
   await seedKhatmaSample()
@@ -448,6 +609,9 @@ export async function initializeMobileBackend(quranDatabase: SQLiteDatabase): Pr
 }
 
 export async function getQuranPage(quranDatabase: SQLiteDatabase, page: number): Promise<QuranVerse[]> {
+  if (IS_WEB_SIMULATOR) {
+    return WEB_QURAN_PAGE_32.map((verse) => ({ ...verse, page }))
+  }
   const rows = await quranDatabase.getAllAsync<{
     global_number: number; surah_number: number; ayah_number: number; text_uthmani: string;
     name_ar: string; page_number: number; juz_number: number;
@@ -520,6 +684,7 @@ function mapKhatmaGroup(row: Record<string, unknown>): MobileKhatmaGroup {
 }
 
 export async function loadMobileKhatmaGroups(): Promise<MobileKhatmaGroup[]> {
+  if (IS_WEB_SIMULATOR) return webState().khatmas.map(webKhatmaSummary)
   const rows = await db().getAllAsync<Record<string, unknown>>(
     `SELECT g.*,
       COUNT(DISTINCT m.id) AS member_count,
@@ -534,6 +699,11 @@ export async function loadMobileKhatmaGroups(): Promise<MobileKhatmaGroup[]> {
 }
 
 export async function loadMobileKhatmaDetail(groupId: number): Promise<MobileKhatmaDetail> {
+  if (IS_WEB_SIMULATOR) {
+    const group = webState().khatmas.find((item) => item.id === groupId)
+    if (!group) throw new Error('Khatma group was not found')
+    return webKhatmaDetail(group)
+  }
   const groups = await db().getAllAsync<Record<string, unknown>>(
     `SELECT g.*,
       COUNT(DISTINCT m.id) AS member_count,
@@ -574,6 +744,30 @@ function inviteCode(name: string) {
 export async function createMobileKhatmaGroup(input: {
   nameAr: string; nameEn: string; daysRemaining: number; ownerName: string
 }): Promise<MobileKhatmaDetail> {
+  if (IS_WEB_SIMULATOR) {
+    const state = webState()
+    const now = new Date().toISOString()
+    const nextId = Math.max(0, ...state.khatmas.map((group) => group.id)) + 1
+    const group = webKhatmaRecord(
+      nextId,
+      input.nameAr.trim() || 'ختمة جديدة',
+      input.nameEn.trim() || 'New Khatma',
+      inviteCode(input.nameEn || input.nameAr),
+      1,
+      0,
+      Math.min(365, Math.max(1, input.daysRemaining)),
+      now,
+    )
+    group.members = [{
+      id: nextId * 100 + 1,
+      displayName: input.ownerName.trim() || 'Wird User',
+      avatarInitial: (input.ownerName.trim().slice(0, 1) || 'W').toUpperCase(),
+      role: 'owner',
+      completedParts: 0,
+    }]
+    state.khatmas.unshift(group)
+    return webKhatmaDetail(group)
+  }
   const database = db()
   const now = new Date().toISOString()
   let groupId = 0
@@ -597,6 +791,22 @@ export async function createMobileKhatmaGroup(input: {
 }
 
 export async function joinMobileKhatma(invite: string, displayName: string): Promise<MobileKhatmaDetail> {
+  if (IS_WEB_SIMULATOR) {
+    const state = webState()
+    const group = state.khatmas.find((item) => item.inviteCode.toUpperCase() === invite.trim().toUpperCase())
+    if (!group) throw new Error('Khatma invite was not found')
+    const name = displayName.trim() || 'Wird User'
+    if (!group.members.some((member) => member.displayName.toLowerCase() === name.toLowerCase())) {
+      group.members.push({
+        id: group.id * 100 + group.members.length + 1,
+        displayName: name,
+        avatarInitial: (name.slice(0, 1) || 'W').toUpperCase(),
+        role: 'member',
+        completedParts: 0,
+      })
+    }
+    return webKhatmaDetail(group)
+  }
   const database = db()
   const group = await database.getFirstAsync<{ id: number }>(
     'SELECT id FROM khatma_groups WHERE UPPER(invite_code) = UPPER(?) LIMIT 1', invite.trim(),
@@ -612,6 +822,32 @@ export async function joinMobileKhatma(invite: string, displayName: string): Pro
 }
 
 export async function completeMobileKhatmaPart(groupId: number, displayName: string): Promise<MobileKhatmaDetail> {
+  if (IS_WEB_SIMULATOR) {
+    const state = webState()
+    const group = state.khatmas.find((item) => item.id === groupId)
+    if (!group) throw new Error('Khatma group was not found')
+    const name = displayName.trim() || 'Wird User'
+    let member = group.members.find((item) => item.displayName.toLowerCase() === name.toLowerCase())
+    if (!member) {
+      member = {
+        id: group.id * 100 + group.members.length + 1,
+        displayName: name,
+        avatarInitial: (name.slice(0, 1) || 'W').toUpperCase(),
+        role: 'member',
+        completedParts: 0,
+      }
+      group.members.push(member)
+    }
+    const nextJuz = Array.from({ length: 30 }, (_, index) => index + 1).find((juz) => !group.completedJuz.includes(juz))
+    if (nextJuz) {
+      group.completedJuz.push(nextJuz)
+      member.completedParts += 1
+      group.completedParts = group.completedJuz.length
+      group.memberCount = group.members.length
+      group.status = group.completedJuz.length >= 30 ? 'completed' : 'active'
+    }
+    return webKhatmaDetail(group)
+  }
   const database = db()
   const now = new Date().toISOString()
   await transaction(async () => {
@@ -654,6 +890,7 @@ export async function completeMobileKhatmaPart(groupId: number, displayName: str
 }
 
 export async function loadMobileSnapshot(): Promise<MobileSnapshot> {
+  if (IS_WEB_SIMULATOR) return webSnapshot()
   await ensureTodaySessions()
   const database = db()
   const plan = await database.getFirstAsync<Record<string, unknown>>(
@@ -729,6 +966,18 @@ async function currentActiveSeconds(session: Record<string, unknown>) {
 }
 
 export async function startMobileSession(sessionId: number) {
+  if (IS_WEB_SIMULATOR) {
+    const state = webState()
+    const session = state.sessions.find((item) => item.id === sessionId)
+    if (!session || !['scheduled', 'paused'].includes(session.status)) throw new Error('Session is not available')
+    for (const item of state.sessions) {
+      if (item.status === 'in_progress' && item.id !== sessionId) item.status = 'paused'
+    }
+    session.status = 'in_progress'
+    session.startGlobalAyah = session.startGlobalAyah ?? state.progress.currentGlobalAyah
+    session.endGlobalAyah = session.endGlobalAyah ?? state.progress.currentGlobalAyah
+    return webSnapshot()
+  }
   const database = db()
   const current = await database.getFirstAsync<Record<string, unknown>>('SELECT * FROM reading_sessions WHERE id = ?', sessionId)
   if (!current || !['scheduled', 'paused'].includes(String(current.status))) throw new Error('Session is not available')
@@ -759,6 +1008,14 @@ export async function startMobileSession(sessionId: number) {
 }
 
 export async function pauseMobileSession(sessionId: number) {
+  if (IS_WEB_SIMULATOR) {
+    const session = webState().sessions.find((item) => item.id === sessionId)
+    if (session?.status === 'in_progress') {
+      session.status = 'paused'
+      session.activeSeconds = Math.max(session.activeSeconds, 60)
+    }
+    return webSnapshot()
+  }
   const database = db()
   const session = await database.getFirstAsync<Record<string, unknown>>('SELECT * FROM reading_sessions WHERE id = ?', sessionId)
   if (!session || session.status !== 'in_progress') return loadMobileSnapshot()
@@ -770,6 +1027,14 @@ export async function pauseMobileSession(sessionId: number) {
 }
 
 export async function postponeMobileSession(sessionId: number, minutes: number) {
+  if (IS_WEB_SIMULATOR) {
+    const session = webState().sessions.find((item) => item.id === sessionId)
+    if (session?.status === 'scheduled') {
+      session.postponedUntil = new Date(Date.now() + minutes * 60_000).toISOString()
+      session.time = displayTime(session.time, session.postponedUntil)
+    }
+    return webSnapshot()
+  }
   const database = db()
   const session = await database.getFirstAsync<Record<string, unknown>>('SELECT * FROM reading_sessions WHERE id = ?', sessionId)
   if (!session || session.status !== 'scheduled') return loadMobileSnapshot()
@@ -785,6 +1050,22 @@ export async function postponeMobileSession(sessionId: number, minutes: number) 
 }
 
 export async function completeMobileSession(sessionId: number, globalNumber: number, quranDatabase: SQLiteDatabase) {
+  if (IS_WEB_SIMULATOR) {
+    const state = webState()
+    const session = state.sessions.find((item) => item.id === sessionId)
+    if (!session || session.status !== 'in_progress') return webSnapshot()
+    session.activeSeconds = Math.max(session.activeSeconds, session.duration * 60)
+    session.status = 'completed'
+    session.endGlobalAyah = globalNumber
+    state.progress = {
+      currentSurah: 2,
+      currentAyah: Math.min(286, Math.max(1, globalNumber - 7)),
+      currentPage: 32,
+      currentGlobalAyah: Math.min(6236, globalNumber + 1),
+      percent: Math.round(Math.min(6236, globalNumber + 1) / 6236 * 1000) / 10,
+    }
+    return webSnapshot()
+  }
   const database = db()
   const session = await database.getFirstAsync<Record<string, unknown>>('SELECT * FROM reading_sessions WHERE id = ?', sessionId)
   if (!session || session.status !== 'in_progress') return loadMobileSnapshot()
@@ -815,6 +1096,26 @@ export async function completeMobileSession(sessionId: number, globalNumber: num
 }
 
 export async function saveMobilePlan(sessions: MobilePlanSession[]) {
+  if (IS_WEB_SIMULATOR) {
+    if (sessions.length < 1 || sessions.length > 5) throw new Error('A plan requires between one and five sessions')
+    if (!sessions.some((session) => session.enabled)) throw new Error('At least one session must be active')
+    const state = webState()
+    state.plan = {
+      ...state.plan,
+      sessionsPerDay: sessions.length,
+      times: sessions.map((session, index) => ({
+        ...session,
+        id: session.id ?? index + 1,
+        order: index + 1,
+        name: session.name || `Wird session ${index + 1}`,
+        duration: Math.min(120, Math.max(5, session.duration)),
+        repeatDays: session.repeatDays ?? [0, 1, 2, 3, 4, 5, 6],
+      })),
+    }
+    const history = state.sessions.filter((session) => session.scheduledDate !== dateKey())
+    state.sessions = [...createWebSessions(state.plan.times).filter((session) => session.scheduledDate === dateKey()), ...history]
+    return webSnapshot()
+  }
   if (sessions.length < 1 || sessions.length > 5) throw new Error('A plan requires between one and five sessions')
   if (!sessions.some((session) => session.enabled)) throw new Error('At least one session must be active')
   const database = db()
@@ -837,11 +1138,39 @@ export async function saveMobilePlan(sessions: MobilePlanSession[]) {
 }
 
 export async function loadAppState<T>(): Promise<T | null> {
+  if (IS_WEB_SIMULATOR) return webState().appState as T | null
   const row = await db().getFirstAsync<{ state_json: string }>('SELECT state_json FROM mobile_state WHERE id = 1')
   return row ? JSON.parse(row.state_json) as T : null
 }
 
 export async function saveAppState(state: unknown) {
+  if (IS_WEB_SIMULATOR) {
+    const current = webState()
+    current.appState = state
+    const values = state as Partial<{
+      themeMode: MobileTheme; darkMode: boolean; fontSize: number; mushafZoom: number; pageMode: string; fitMode: string;
+      ayahNumbers: boolean; readerPage: number; notifications: boolean; preSessionAlert: boolean;
+      spiritualAudio: boolean; spiritualCards: boolean; smartSuggestions: boolean;
+    }>
+    current.settings = {
+      ...current.settings,
+      theme: values.themeMode && ['system', 'light', 'dark'].includes(values.themeMode)
+        ? values.themeMode
+        : typeof values.darkMode === 'boolean' ? values.darkMode ? 'dark' : 'light' : current.settings.theme,
+      quranFontSize: values.fontSize ?? current.settings.quranFontSize,
+      mushafZoom: values.mushafZoom ?? current.settings.mushafZoom,
+      readerPageMode: values.pageMode === 'single' || values.pageMode === 'spread' ? values.pageMode : current.settings.readerPageMode,
+      readerFitMode: values.fitMode === 'width' || values.fitMode === 'custom' || values.fitMode === 'height' ? values.fitMode : current.settings.readerFitMode,
+      showAyahNumbers: values.ayahNumbers ?? current.settings.showAyahNumbers,
+      lastOpenedPage: values.readerPage ?? current.settings.lastOpenedPage,
+      notificationsEnabled: values.notifications ?? current.settings.notificationsEnabled,
+      preSessionWidgetEnabled: values.preSessionAlert ?? current.settings.preSessionWidgetEnabled,
+      spiritualAudioEnabled: values.spiritualAudio ?? current.settings.spiritualAudioEnabled,
+      spiritualMessagesEnabled: values.spiritualCards ?? current.settings.spiritualMessagesEnabled,
+      smartSuggestionsEnabled: values.smartSuggestions ?? current.settings.smartSuggestionsEnabled,
+    }
+    return
+  }
   const database = db()
   const json = JSON.stringify(state)
   const now = new Date().toISOString()
@@ -871,6 +1200,9 @@ export async function saveAppState(state: unknown) {
 }
 
 export async function createBackupPayload() {
+  if (IS_WEB_SIMULATOR) {
+    return JSON.stringify({ kind: 'wird-mobile-backup', version: 1, exportedAt: new Date().toISOString(), data: { simulatorState: webState() } }, null, 2)
+  }
   const database = db()
   const data: Record<string, Array<Record<string, unknown>>> = {}
   for (const table of Object.keys(BACKUP_TABLES) as Array<keyof typeof BACKUP_TABLES>) {
@@ -882,6 +1214,10 @@ export async function createBackupPayload() {
 export async function restoreBackupPayload(payload: string) {
   const parsed = JSON.parse(payload) as { kind?: string; version?: number; data?: Record<string, unknown> }
   if (parsed.kind !== 'wird-mobile-backup' || parsed.version !== 1 || !parsed.data) throw new Error('Invalid Wird backup')
+  if (IS_WEB_SIMULATOR) {
+    if (parsed.data.simulatorState) webSimulatorState = parsed.data.simulatorState as WebSimulatorState
+    return webSnapshot()
+  }
   const database = db()
   await transaction(async () => {
     await database.execAsync('PRAGMA foreign_keys = OFF')

@@ -1,5 +1,6 @@
 node_modules/
 .expo/
+.codex-preview/
 dist/
 web-build/
 .DS_Store

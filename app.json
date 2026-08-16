@@ -35,7 +35,21 @@
     "plugins": [
       "expo-notifications",
       "expo-sqlite",
-      ["expo-secure-store", { "configureAndroidBackup": true }]
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wird uses your photo library to set your profile picture.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-font"
     ]
   }
 }
