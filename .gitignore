@@ -4,6 +4,7 @@ node_modules/
 docs/screenshots/onboarding-*.jpg
 docs/screenshots/onboarding-*.json
 dist/
+dist-preview/
 web-build/
 .DS_Store
 *.log
