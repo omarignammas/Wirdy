@@ -40,6 +40,23 @@ explicitly exports a backup.
 
 ## Screenshots
 
+### First Run
+
+<table>
+  <tr>
+    <td align="center"><strong>Light Onboarding</strong></td>
+    <td align="center"><strong>Dark Onboarding</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/onboarding-light.png" alt="Wirdy Arabic onboarding screen in light mode" /></td>
+    <td><img src="docs/screenshots/onboarding-dark.png" alt="Wirdy Arabic onboarding screen in dark mode" /></td>
+  </tr>
+  <tr>
+    <td align="center">Warm editorial first-run flow with 44pt-plus controls</td>
+    <td align="center">Low-light first-run flow using the same local auth path</td>
+  </tr>
+</table>
+
 ### Daily Reading
 
 <table>
@@ -125,6 +142,8 @@ presentations.
   behavior.
 - iOS-style navigation, bottom sheets, segmented controls, switches, and
   accessible touch targets.
+- Lateef typography for Arabic-first editorial screens and refined font weights
+  across onboarding, sign-in, and sign-up.
 - Animated circular progress and interactive weekly reading charts.
 - Home dashboard with greeting, avatar, notifications, next session, daily
   goal, reading streak, pages read, and Khatma progress.

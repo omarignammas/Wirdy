@@ -38,8 +38,10 @@ import { File, Paths } from 'expo-file-system'
 import * as DocumentPicker from 'expo-document-picker'
 import * as ImagePicker from 'expo-image-picker'
 import { useFonts, Cairo_400Regular, Cairo_500Medium, Cairo_600SemiBold, Cairo_700Bold, Cairo_800ExtraBold, Cairo_900Black } from '@expo-google-fonts/cairo'
+import { Lateef_400Regular, Lateef_500Medium, Lateef_600SemiBold, Lateef_700Bold, Lateef_800ExtraBold } from '@expo-google-fonts/lateef'
+import { CormorantGaramond_400Regular, CormorantGaramond_500Medium, CormorantGaramond_600SemiBold, CormorantGaramond_700Bold } from '@expo-google-fonts/cormorant-garamond'
 import { copy, type Language } from './src/locales'
-import { withCairoFont } from './src/font'
+import { withAppFont } from './src/font'
 import { legalDocuments, type LegalDocumentKey } from './src/legal-content'
 import { AuthFlow } from './src/AuthFlow'
 import { getCurrentProfile, signOut, updateProfile, type WirdProfile } from './src/services/auth-service'
@@ -131,6 +133,9 @@ const WEB_DATABASE_SESSION_ID = Platform.OS === 'web'
   ? `${Date.now()}-${Math.random().toString(36).slice(2)}`
   : ''
 const QURAN_DATABASE_NAME = Platform.OS === 'web' ? `quran-${WEB_DATABASE_SESSION_ID}.db` : 'quran.db'
+const WEB_PHONE_WIDTH = 393
+const WEB_PHONE_HEIGHT = 852
+const WEB_SCREENSHOT_SCALE = 0.76
 
 const initialSessions: WirdSession[] = [
   { id: 1, order: 1, nameAr: 'جلسة الورد 1', nameEn: 'Wird session 1', time: '11:35', duration: 5, page: 32, status: 'ended_early', enabled: true },
@@ -246,19 +251,30 @@ function timeGreeting(t: typeof copy.ar | typeof copy.en) {
   return t.greetingNight
 }
 
+function webPreviewParams() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null
+  return new URLSearchParams(window.location.search)
+}
+
 export default function App() {
-  const [fontsLoaded] = useFonts({ Cairo_400Regular, Cairo_500Medium, Cairo_600SemiBold, Cairo_700Bold, Cairo_800ExtraBold, Cairo_900Black })
+  const [fontsLoaded] = useFonts({
+    Cairo_400Regular, Cairo_500Medium, Cairo_600SemiBold, Cairo_700Bold, Cairo_800ExtraBold, Cairo_900Black,
+    Lateef_400Regular, Lateef_500Medium, Lateef_600SemiBold, Lateef_700Bold, Lateef_800ExtraBold,
+    CormorantGaramond_400Regular, CormorantGaramond_500Medium, CormorantGaramond_600SemiBold, CormorantGaramond_700Bold,
+  })
   if (!fontsLoaded) return <BootSkeleton darkMode={false} />
   if (Platform.OS === 'web') {
+    const fitPreview = webPreviewParams()?.get('fit') === '1'
+    const phone = <View style={webPreviewStyles.phoneFrame}>
+      <SafeAreaProvider>
+        <BottomSheetModalProvider>
+          <AppRoot quranDatabase={null as unknown as SQLiteDatabase} />
+        </BottomSheetModalProvider>
+      </SafeAreaProvider>
+    </View>
     return <GestureHandlerRootView style={webPreviewStyles.stage}>
       <ScrollView style={webPreviewStyles.stageScroll} contentContainerStyle={webPreviewStyles.stageContent} showsVerticalScrollIndicator={false}>
-        <View style={webPreviewStyles.phoneFrame}>
-          <SafeAreaProvider>
-            <BottomSheetModalProvider>
-              <AppRoot quranDatabase={null as unknown as SQLiteDatabase} />
-            </BottomSheetModalProvider>
-          </SafeAreaProvider>
-        </View>
+        {fitPreview ? <View style={webPreviewStyles.phoneScaler}>{phone}</View> : phone}
       </ScrollView>
     </GestureHandlerRootView>
   }
@@ -280,8 +296,11 @@ function NativeSQLiteRoot() {
 
 function AppRoot({ quranDatabase }: { quranDatabase: SQLiteDatabase }) {
   const systemColorScheme = useColorScheme()
-  const [language, setLanguage] = useState<Language>('ar')
-  const [themeMode, setThemeMode] = useState<MobileTheme>('system')
+  const [language, setLanguage] = useState<Language>(() => webPreviewParams()?.get('lang') === 'en' ? 'en' : 'ar')
+  const [themeMode, setThemeMode] = useState<MobileTheme>(() => {
+    const theme = webPreviewParams()?.get('theme')
+    return theme === 'light' || theme === 'dark' ? theme : 'system'
+  })
   const [profile, setProfile] = useState<WirdProfile | null>(null)
   const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null)
   const [onboardingComplete, setOnboardingComplete] = useState(false)
@@ -298,9 +317,14 @@ function AppRoot({ quranDatabase }: { quranDatabase: SQLiteDatabase }) {
     let cancelled = false
     void Promise.all([initializeMobileBackend(quranDatabase), getCurrentProfile(), AsyncStorage.getItem(ONBOARDING_KEY), AsyncStorage.getItem(STORAGE_KEY)]).then(([status, currentProfile, onboarding, savedState]) => {
       if (cancelled) return
+      const params = webPreviewParams()
+      const forcedAuthOff = params?.get('auth') === 'off'
+      const forcedTheme = params?.get('theme')
+      const forcedLanguage = params?.get('lang')
       setBackendStatus(status)
-      setProfile(currentProfile)
-      setOnboardingComplete(Boolean(onboarding))
+      setProfile(forcedAuthOff ? null : currentProfile)
+      setOnboardingComplete(forcedAuthOff ? false : Boolean(onboarding))
+      if (forcedLanguage === 'ar' || forcedLanguage === 'en') setLanguage(forcedLanguage)
       if (savedState) {
         try {
           const saved = JSON.parse(savedState) as Partial<{ themeMode: MobileTheme; darkMode: boolean }>
@@ -308,6 +332,7 @@ function AppRoot({ quranDatabase }: { quranDatabase: SQLiteDatabase }) {
           else if (typeof saved.darkMode === 'boolean') setThemeMode(saved.darkMode ? 'dark' : 'light')
         } catch { /* Ignore an invalid legacy preference and use the system mode. */ }
       }
+      if (forcedTheme === 'light' || forcedTheme === 'dark') setThemeMode(forcedTheme)
     }).finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [quranDatabase])
@@ -334,9 +359,9 @@ const webPreviewStyles = StyleSheet.create({
     paddingVertical: 28,
   },
   phoneFrame: {
-    width: 393,
+    width: WEB_PHONE_WIDTH,
     maxWidth: '100%',
-    height: 852,
+    height: WEB_PHONE_HEIGHT,
     overflow: 'hidden',
     borderRadius: 44,
     backgroundColor: '#FFFFFF',
@@ -346,6 +371,13 @@ const webPreviewStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 18 },
     borderWidth: 1,
     borderColor: 'rgba(23, 92, 67, 0.12)',
+  },
+  phoneScaler: {
+    width: WEB_PHONE_WIDTH * WEB_SCREENSHOT_SCALE,
+    height: WEB_PHONE_HEIGHT * WEB_SCREENSHOT_SCALE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ scale: WEB_SCREENSHOT_SCALE }],
   },
 })
 
@@ -1127,7 +1159,10 @@ function CircularProgress({ value, size, strokeWidth, trackColor, progressColor,
   }, [animatedValue, normalized])
   const offset = animatedValue.interpolate({ inputRange: [0, 100], outputRange: [circumference, 0] })
   const webOffset = circumference * (1 - normalized / 100)
-  return <View accessibilityLabel={`${label} ${normalized}%`} style={{ width: size, height: size }}><Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}><Circle cx={size / 2} cy={size / 2} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="none" /><AnimatedCircle cx={size / 2} cy={size / 2} r={radius} stroke={progressColor} strokeWidth={strokeWidth} strokeDasharray={`${circumference} ${circumference}`} strokeDashoffset={Platform.OS === 'web' ? webOffset : offset} strokeLinecap="round" fill="none" /></Svg><View style={ringStyles.center}><Text style={[ringStyles.value, { color: textColor }]}>{normalized}%</Text><Text style={[ringStyles.label, { color: labelColor }]} numberOfLines={1}>{label}</Text></View></View>
+  const progressCircle = Platform.OS === 'web'
+    ? <Circle cx={size / 2} cy={size / 2} r={radius} stroke={progressColor} strokeWidth={strokeWidth} strokeDasharray={`${circumference} ${circumference}`} strokeDashoffset={webOffset} strokeLinecap="round" fill="none" />
+    : <AnimatedCircle cx={size / 2} cy={size / 2} r={radius} stroke={progressColor} strokeWidth={strokeWidth} strokeDasharray={`${circumference} ${circumference}`} strokeDashoffset={offset} strokeLinecap="round" fill="none" />
+  return <View accessibilityLabel={`${label} ${normalized}%`} style={{ width: size, height: size }}><Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}><Circle cx={size / 2} cy={size / 2} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="none" />{progressCircle}</Svg><View style={ringStyles.center}><Text style={[ringStyles.value, { color: textColor }]}>{normalized}%</Text><Text style={[ringStyles.label, { color: labelColor }]} numberOfLines={1}>{label}</Text></View></View>
 }
 
 const ringStyles = StyleSheet.create({ center: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' }, value: { fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] }, label: { fontSize: 10, fontWeight: '500', marginTop: 1, maxWidth: 70, textAlign: 'center' } })
@@ -1235,7 +1270,7 @@ function makeStyles(p: Palette, rtl: boolean) {
   const row = rtl ? 'row-reverse' as const : 'row' as const
   const align = rtl ? 'right' as const : 'left' as const
   const writing = rtl ? 'rtl' as const : 'ltr' as const
-  return withCairoFont(StyleSheet.create({
+  return withAppFont(StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: p.background }, app: { flex: 1, backgroundColor: p.background }, flexScreen: { flex: 1 }, screen: { flex: 1 }, scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: 136 },
     header: { position: 'relative', flexDirection: row, alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: Platform.OS === 'android' ? 15 : spacing.sm, paddingBottom: spacing.md }, headerHairline: { position: 'absolute', left: 0, right: 0, bottom: 0, height: StyleSheet.hairlineWidth, backgroundColor: p.line }, largeTitle: { color: p.ink, fontSize: 34, lineHeight: 40, fontWeight: '800', marginBottom: spacing.md, textAlign: align, writingDirection: writing },
     avatar: { width: 43, height: 43, borderRadius: 21.5, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: p.primaryDeep, borderWidth: 1.5, borderColor: p.primaryMuted }, avatarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' }, avatarImage: { width: '100%', height: '100%' },
@@ -1286,5 +1321,5 @@ function makeStyles(p: Palette, rtl: boolean) {
     ritualOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 100, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,27,20,0.90)' }, ritualMark: { width: 74, height: 74, alignItems: 'center', justifyContent: 'center', borderRadius: radius.xxl, backgroundColor: '#FFFFFF' }, ritualMarkText: { color: p.primaryDeep, fontSize: 33, fontWeight: '800' }, ritualText: { marginTop: spacing.lg, color: '#FFFFFF', fontSize: 17, fontWeight: '700' }, ritualCount: { marginTop: spacing.sm, color: p.gold, fontSize: 45, fontWeight: '800' },
     sheetHeader: { flexDirection: row, alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md }, sheetHeaderCopy: { flex: 1 }, sheetTitle: { color: p.ink, fontSize: 18, fontWeight: '800', textAlign: align }, sheetSubtitle: { marginTop: 2, color: p.muted, fontSize: 10, textAlign: align }, sheetClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: p.elevated }, sheetAction: { minHeight: 64, flexDirection: row, alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: p.line }, sheetActionIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: p.primaryMuted }, sheetActionText: { flex: 1, color: p.ink, fontSize: 14, fontWeight: '700', textAlign: align },
     fieldLabel: { marginTop: spacing.sm, marginBottom: 5, color: p.muted, fontSize: 10, fontWeight: '700', textAlign: align }, textInput: { minHeight: 48, flex: 1, paddingHorizontal: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: p.line, color: p.ink, backgroundColor: p.elevated, textAlign: align }, formFields: { gap: spacing.xs }, jumpRow: { flexDirection: row, gap: spacing.sm }, modalPrimary: { minHeight: 50, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: p.primary }, modalPrimaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' }, modalGhost: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm }, modalGhostText: { color: p.muted, fontSize: 12, fontWeight: '700' }, modalActions: { flexDirection: row, gap: spacing.sm, marginTop: spacing.md }, tafsirBanner: { flexDirection: row, alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: radius.md, backgroundColor: p.primaryMuted }, tafsirBannerText: { color: p.primary, fontSize: 10, fontWeight: '600' }, tafsirText: { marginTop: spacing.md, color: p.ink, fontSize: 14, lineHeight: 27, textAlign: align, writingDirection: writing }, emptyText: { paddingVertical: 25, color: p.muted, fontSize: 12, textAlign: 'center' }, bookmarkRow: { minHeight: 65, flexDirection: row, alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: p.line }, bookmarkCopy: { flex: 1 }, completeIcon: { alignSelf: 'center', width: 61, height: 61, alignItems: 'center', justifyContent: 'center', borderRadius: 30.5, backgroundColor: p.primary }, completeTitle: { marginTop: spacing.md, color: p.ink, fontSize: 17, fontWeight: '700', textAlign: 'center' }, completeText: { marginVertical: spacing.sm, color: p.muted, fontSize: 11, textAlign: 'center' },
-  }))
+  }), rtl ? 'arabic' : 'ui')
 }

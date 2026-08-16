@@ -1,6 +1,8 @@
 node_modules/
 .expo/
 .codex-preview/
+docs/screenshots/onboarding-*.jpg
+docs/screenshots/onboarding-*.json
 dist/
 web-build/
 .DS_Store
