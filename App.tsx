@@ -363,7 +363,7 @@ const webPreviewStyles = StyleSheet.create({
     maxWidth: '100%',
     height: WEB_PHONE_HEIGHT,
     overflow: 'hidden',
-    borderRadius: 44,
+    borderRadius: 54,
     backgroundColor: '#FFFFFF',
     shadowColor: '#0F2E22',
     shadowOpacity: 0.24,
@@ -405,14 +405,14 @@ function BootSkeleton({ darkMode }: { darkMode: boolean }) {
 
 const bootstrapStyles = StyleSheet.create({
   loading: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#FFFFFF' },
-  skeletonTop: { minHeight: 86, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 22 },
-  skeletonAvatar: { width: 52, height: 52, borderRadius: 18 },
+  skeletonTop: { minHeight: 86, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 28 },
+  skeletonAvatar: { width: 52, height: 52, borderRadius: 22 },
   skeletonCopy: { flex: 1, gap: 10 },
   skeletonLine: { height: 12, borderRadius: 6 },
-  skeletonHero: { minHeight: 210, justifyContent: 'space-between', marginTop: 16, padding: 20, borderRadius: 28 },
+  skeletonHero: { minHeight: 210, justifyContent: 'space-between', marginTop: 16, padding: 20, borderRadius: 38 },
   skeletonButton: { height: 54, borderRadius: 27 },
   skeletonGrid: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  skeletonMetric: { flex: 1, height: 96, borderRadius: 18 },
+  skeletonMetric: { flex: 1, height: 96, borderRadius: 24 },
 })
 
 function MainApp({ language: initialLanguage, initialProfile, backendStatus, quranDatabase, themeMode, setThemeMode, darkMode, onSignOut }: { language: Language; initialProfile: WirdProfile; backendStatus: BackendStatus; quranDatabase: SQLiteDatabase; themeMode: MobileTheme; setThemeMode: (theme: MobileTheme) => void; darkMode: boolean; onSignOut: () => Promise<void> }) {
@@ -1262,7 +1262,7 @@ function sessionName(session: WirdSession, language: Language) { return language
 
 type Styles = ReturnType<typeof makeStyles>
 
-const radius = { sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 }
+const radius = { sm: 12, md: 18, lg: 24, xl: 30, xxl: 38 }
 const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 }
 const hitSlop = { top: 8, right: 8, bottom: 8, left: 8 }
 
@@ -1275,7 +1275,7 @@ function makeStyles(p: Palette, rtl: boolean) {
     header: { position: 'relative', flexDirection: row, alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: Platform.OS === 'android' ? 15 : spacing.sm, paddingBottom: spacing.md }, headerHairline: { position: 'absolute', left: 0, right: 0, bottom: 0, height: StyleSheet.hairlineWidth, backgroundColor: p.line }, largeTitle: { color: p.ink, fontSize: 34, lineHeight: 40, fontWeight: '800', marginBottom: spacing.md, textAlign: align, writingDirection: writing },
     avatar: { width: 43, height: 43, borderRadius: 21.5, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: p.primaryDeep, borderWidth: 1.5, borderColor: p.primaryMuted }, avatarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' }, avatarImage: { width: '100%', height: '100%' },
     headerCopy: { flex: 1, minWidth: 0 }, headerKicker: { color: p.muted, fontSize: 11, fontWeight: '600', textAlign: align, writingDirection: writing }, headerTitle: { color: p.ink, fontSize: 22, fontWeight: '800', lineHeight: 30, textAlign: align, writingDirection: writing },
-    headerButton: { position: 'relative', width: 46, height: 46, borderRadius: 15, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface, alignItems: 'center', justifyContent: 'center' }, pressablePressed: { opacity: 0.72, transform: [{ scale: 0.97 }] }, pressableDisabled: { opacity: 0.48 }, notificationDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: p.surface, backgroundColor: p.gold },
+    headerButton: { position: 'relative', width: 46, height: 46, borderRadius: 21, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface, alignItems: 'center', justifyContent: 'center' }, pressablePressed: { opacity: 0.72, transform: [{ scale: 0.97 }] }, pressableDisabled: { opacity: 0.48 }, notificationDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: p.surface, backgroundColor: p.gold },
     notificationToast: { position: 'absolute', zIndex: 20, top: 106, insetInlineEnd: spacing.lg, maxWidth: 240, minHeight: 48, flexDirection: row, alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: p.line, backgroundColor: p.surface, shadowColor: p.shadow, shadowOpacity: 1, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } }, notificationToastText: { flex: 1, color: p.ink, fontSize: 12, textAlign: align, writingDirection: writing },
     nextStrip: { minHeight: 74, flexDirection: row, alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderRadius: radius.lg, backgroundColor: p.primaryMuted }, smallMuted: { color: p.muted, fontSize: 11, fontWeight: '500', textAlign: align, writingDirection: writing }, nextStripTitle: { marginTop: 2, color: p.primary, fontSize: 17, fontWeight: '800', textAlign: align }, timeChip: { minHeight: 44, flexDirection: row, alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: p.surface }, timeChipText: { color: p.primary, fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
     heroCard: { marginTop: spacing.md, padding: spacing.lg, borderRadius: radius.xxl, backgroundColor: p.primaryDeep, shadowColor: p.shadow, shadowOpacity: 1, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } }, heroTop: { flexDirection: row, alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm }, heroKicker: { color: 'rgba(255,255,255,0.72)', fontSize: 11, fontWeight: '600', textAlign: align }, heroTitle: { maxWidth: 230, marginTop: 2, color: '#FFFFFF', fontSize: 24, fontWeight: '800', lineHeight: 32, textAlign: align, writingDirection: writing }, partChip: { paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.11)' }, partChipText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
