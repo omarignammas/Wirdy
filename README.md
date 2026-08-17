@@ -48,8 +48,8 @@ explicitly exports a backup.
     <td align="center"><strong>Dark Onboarding</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/onboarding-light.png" alt="Wirdy Arabic onboarding screen in light mode" /></td>
-    <td><img src="docs/screenshots/onboarding-dark.png" alt="Wirdy Arabic onboarding screen in dark mode" /></td>
+    <td><img src="docs/screenshots/onboarding-light.png" width="280" alt="Wirdy Arabic onboarding screen in light mode" /></td>
+    <td><img src="docs/screenshots/onboarding-dark.png" width="280" alt="Wirdy Arabic onboarding screen in dark mode" /></td>
   </tr>
   <tr>
     <td align="center">Warm editorial first-run flow with 44pt-plus controls</td>
@@ -66,13 +66,13 @@ explicitly exports a backup.
     <td align="center"><strong>Recurring Plan</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/home-dashboard.jpg" alt="Wirdy Arabic home dashboard with daily reading progress" /></td>
-    <td><img src="docs/screenshots/reader.jpg" alt="Wirdy local Quran reader with bookmarks and Tafsir tools" /></td>
-    <td><img src="docs/screenshots/plan.jpg" alt="Wirdy recurring reading plan management" /></td>
+    <td><img src="docs/screenshots/home-dashboard.jpg" width="235" alt="Wirdy Arabic home dashboard with daily reading progress" /></td>
+    <td><img src="docs/screenshots/reader.jpg" width="235" alt="Wirdy local Quran reader with bookmarks and Tafsir tools" /></td>
+    <td><img src="docs/screenshots/plan.jpg" width="235" alt="Wirdy recurring reading plan management" /></td>
   </tr>
   <tr>
     <td align="center">Next session, daily goal, Khatma progress, and weekly rhythm</td>
-    <td align="center">Offline Mushaf, page navigation, bookmarks, and Tafsir access</td>
+    <td align="center">Full-screen Mushaf focus mode, bookmarks, and Tafsir access</td>
     <td align="center">Flexible session times, durations, and reading position</td>
   </tr>
 </table>
@@ -86,9 +86,9 @@ explicitly exports a backup.
     <td align="center"><strong>Group Progress</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/statistics.jpg" alt="Wirdy animated reading statistics and weekly activity" /></td>
-    <td><img src="docs/screenshots/khatamat-groups.jpg" alt="Wirdy collaborative Khatamat list on iPhone" /></td>
-    <td><img src="docs/screenshots/khatma-detail.jpg" alt="Wirdy Khatma group detail and progress on iPhone" /></td>
+    <td><img src="docs/screenshots/statistics.jpg" width="235" alt="Wirdy animated reading statistics and weekly activity" /></td>
+    <td><img src="docs/screenshots/khatamat-groups.jpg" width="235" alt="Wirdy collaborative Khatamat list on iPhone" /></td>
+    <td><img src="docs/screenshots/khatma-detail.jpg" width="235" alt="Wirdy Khatma group detail and progress on iPhone" /></td>
   </tr>
   <tr>
     <td align="center">Reading time, pages, active days, and interactive charts</td>
@@ -105,8 +105,8 @@ explicitly exports a backup.
     <td align="center"><strong>Dark Appearance</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/settings.jpg" alt="Wirdy reading and appearance settings" /></td>
-    <td><img src="docs/screenshots/home-dark.jpg" alt="Wirdy home dashboard in dark appearance" /></td>
+    <td><img src="docs/screenshots/settings.jpg" width="280" alt="Wirdy reading and appearance settings" /></td>
+    <td><img src="docs/screenshots/home-dark.jpg" width="280" alt="Wirdy home dashboard in dark appearance" /></td>
   </tr>
   <tr>
     <td align="center">System, Light, and Dark modes with reader controls</td>
@@ -114,8 +114,8 @@ explicitly exports a backup.
   </tr>
 </table>
 
-The product interface supports Arabic RTL and English LTR. These screens were
-captured from the repository's interactive virtual iPhone simulator.
+The product interface supports Arabic RTL and English LTR. These HD screens
+were captured from the repository's interactive virtual iPhone simulator.
 
 ## Product Carousel
 

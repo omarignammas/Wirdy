@@ -256,6 +256,25 @@ function webPreviewParams() {
   return new URLSearchParams(window.location.search)
 }
 
+function webPreviewTab() {
+  const value = webPreviewParams()?.get('tab') as TabId | null
+  return value && ['home', 'reader', 'khatmas', 'stats', 'more'].includes(value) ? value : 'home'
+}
+
+function webPreviewMoreRoute() {
+  const value = webPreviewParams()?.get('route') as MoreRoute | null
+  return value && ['main', 'editProfile', 'sessions', 'settings', 'plan', 'backup', 'about', 'privacy', 'terms'].includes(value) ? value : 'main'
+}
+
+function webPreviewDemoProfile(): WirdProfile {
+  return {
+    id: 'web-preview-demo',
+    name: 'Omarito',
+    email: 'omarito@example.com',
+    createdAt: '2026-08-01T08:00:00.000Z',
+  }
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Cairo_400Regular, Cairo_500Medium, Cairo_600SemiBold, Cairo_700Bold, Cairo_800ExtraBold, Cairo_900Black,
@@ -319,11 +338,12 @@ function AppRoot({ quranDatabase }: { quranDatabase: SQLiteDatabase }) {
       if (cancelled) return
       const params = webPreviewParams()
       const forcedAuthOff = params?.get('auth') === 'off'
+      const forcedDemoAuth = params?.get('auth') === 'demo'
       const forcedTheme = params?.get('theme')
       const forcedLanguage = params?.get('lang')
       setBackendStatus(status)
-      setProfile(forcedAuthOff ? null : currentProfile)
-      setOnboardingComplete(forcedAuthOff ? false : Boolean(onboarding))
+      setProfile(forcedAuthOff ? null : forcedDemoAuth ? webPreviewDemoProfile() : currentProfile)
+      setOnboardingComplete(forcedAuthOff ? false : forcedDemoAuth ? true : Boolean(onboarding))
       if (forcedLanguage === 'ar' || forcedLanguage === 'en') setLanguage(forcedLanguage)
       if (savedState) {
         try {
@@ -418,8 +438,8 @@ const bootstrapStyles = StyleSheet.create({
 function MainApp({ language: initialLanguage, initialProfile, backendStatus, quranDatabase, themeMode, setThemeMode, darkMode, onSignOut }: { language: Language; initialProfile: WirdProfile; backendStatus: BackendStatus; quranDatabase: SQLiteDatabase; themeMode: MobileTheme; setThemeMode: (theme: MobileTheme) => void; darkMode: boolean; onSignOut: () => Promise<void> }) {
   const [language, setLanguage] = useState<Language>(initialLanguage)
   const [profile, setProfile] = useState<WirdProfile>(initialProfile)
-  const [tab, setTab] = useState<TabId>('home')
-  const [moreRoute, setMoreRoute] = useState<MoreRoute>('main')
+  const [tab, setTab] = useState<TabId>(() => webPreviewTab())
+  const [moreRoute, setMoreRoute] = useState<MoreRoute>(() => webPreviewTab() === 'more' ? webPreviewMoreRoute() : 'main')
   const [sessions, setSessions] = useState(initialSessions)
   const [planSessions, setPlanSessions] = useState(initialPlanSessions)
   const [readerPage, setReaderPage] = useState(32)
@@ -437,7 +457,7 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
   const [readerSheet, setReaderSheet] = useState<'jump' | 'tafsir' | 'bookmarks' | 'complete' | null>(null)
   const [jumpPage, setJumpPage] = useState('32')
   const [selectedWeekDay, setSelectedWeekDay] = useState(weekly[6])
-  const [readerExpanded, setReaderExpanded] = useState(false)
+  const [readerExpanded, setReaderExpanded] = useState(() => webPreviewParams()?.get('reader') === 'full')
   const [sessionFilter, setSessionFilter] = useState<SessionFilter>('today')
   const [khatmas, setKhatmas] = useState<MobileKhatmaGroup[]>([])
   const [selectedKhatma, setSelectedKhatma] = useState<MobileKhatmaDetail | null>(null)
@@ -489,7 +509,8 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
     const mappedWeek = weekly.map((day, index) => ({ ...day, minutes: snapshot.statistics.weeklyTrend[index]?.minutes ?? 0 }))
     setWeekData(mappedWeek)
     setSelectedWeekDay(mappedWeek.at(-1) ?? mappedWeek[0])
-    setThemeMode(snapshot.settings.theme)
+    const forcedTheme = webPreviewParams()?.get('theme')
+    if (forcedTheme !== 'light' && forcedTheme !== 'dark') setThemeMode(snapshot.settings.theme)
     setFontSize(snapshot.settings.quranFontSize)
     setMushafZoom(snapshot.settings.mushafZoom)
     setPageMode(snapshot.settings.readerPageMode)
@@ -527,6 +548,11 @@ function MainApp({ language: initialLanguage, initialProfile, backendStatus, qur
     }).catch(() => undefined).finally(() => { if (!cancelled) setHydrated(true) })
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    if (webPreviewParams()?.get('khatma') !== 'detail' || selectedKhatma || !khatmas.length) return
+    void loadMobileKhatmaDetail(khatmas[0].id).then(setSelectedKhatma)
+  }, [khatmas, selectedKhatma])
 
   useEffect(() => {
     if (!hydrated) return
