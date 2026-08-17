@@ -38,32 +38,36 @@ The repository contains both layers of the mobile product:
 There is no required remote API. User data stays on the device unless the user
 explicitly exports a backup.
 
-## Screenshots
+## Screens / الشاشات
 
-### First Run
+Wirdy offers the same product flow in Arabic RTL and English LTR. The captures
+below show the Arabic interface; every view, label, control, and workflow can
+be switched to English from the app without changing the underlying local data.
+
+### First Run / البداية
 
 <table>
   <tr>
-    <td align="center"><strong>Light Onboarding</strong></td>
-    <td align="center"><strong>Dark Onboarding</strong></td>
+    <td align="center"><strong>Light Onboarding<br />بدء الاستخدام - فاتح</strong></td>
+    <td align="center"><strong>Dark Onboarding<br />بدء الاستخدام - داكن</strong></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/onboarding-light.png" width="280" alt="Wirdy Arabic onboarding screen in light mode" /></td>
     <td><img src="docs/screenshots/onboarding-dark.png" width="280" alt="Wirdy Arabic onboarding screen in dark mode" /></td>
   </tr>
   <tr>
-    <td align="center">Warm editorial first-run flow with 44pt-plus controls</td>
-    <td align="center">Low-light first-run flow using the same local auth path</td>
+    <td align="center">Arabic RTL or English LTR, with 44pt-plus controls<br />العربية والإنجليزية مع عناصر لمس مريحة</td>
+    <td align="center">The same local sign-in path in low light<br />تسجيل الدخول المحلي نفسه في الوضع الداكن</td>
   </tr>
 </table>
 
-### Daily Reading
+### Daily Reading / القراءة اليومية
 
 <table>
   <tr>
-    <td align="center"><strong>Reading Dashboard</strong></td>
-    <td align="center"><strong>Quran Reader</strong></td>
-    <td align="center"><strong>Recurring Plan</strong></td>
+    <td align="center"><strong>Reading Dashboard<br />لوحة الورد</strong></td>
+    <td align="center"><strong>Quran Reader<br />قارئ القرآن</strong></td>
+    <td align="center"><strong>Recurring Plan<br />خطة الورد</strong></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/home-dashboard.jpg" width="235" alt="Wirdy Arabic home dashboard with daily reading progress" /></td>
@@ -71,19 +75,19 @@ explicitly exports a backup.
     <td><img src="docs/screenshots/plan.jpg" width="235" alt="Wirdy recurring reading plan management" /></td>
   </tr>
   <tr>
-    <td align="center">Next session, daily goal, Khatma progress, and weekly rhythm</td>
-    <td align="center">Full-screen Mushaf focus mode, bookmarks, and Tafsir access</td>
-    <td align="center">Flexible session times, durations, and reading position</td>
+    <td align="center">Next session, daily goal, Khatma progress, and weekly rhythm<br />الجلسة القادمة والهدف اليومي والتقدم الأسبوعي</td>
+    <td align="center">Full-screen Mushaf focus mode, bookmarks, and Tafsir access<br />مصحف بملء الشاشة وعلامات وتفسير</td>
+    <td align="center">Flexible session times, durations, and reading position<br />مواعيد ومدة وموضع قراءة مرن</td>
   </tr>
 </table>
 
-### Progress And Community
+### Progress And Community / التقدم والمجتمع
 
 <table>
   <tr>
-    <td align="center"><strong>Reading Insights</strong></td>
-    <td align="center"><strong>Collaborative Khatamat</strong></td>
-    <td align="center"><strong>Group Progress</strong></td>
+    <td align="center"><strong>Reading Insights<br />إحصاءات القراءة</strong></td>
+    <td align="center"><strong>Collaborative Khatamat<br />الختمات الجماعية</strong></td>
+    <td align="center"><strong>Group Progress<br />تقدم المجموعة</strong></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/statistics.jpg" width="235" alt="Wirdy animated reading statistics and weekly activity" /></td>
@@ -91,31 +95,33 @@ explicitly exports a backup.
     <td><img src="docs/screenshots/khatma-detail.jpg" width="235" alt="Wirdy Khatma group detail and progress on iPhone" /></td>
   </tr>
   <tr>
-    <td align="center">Reading time, pages, active days, and interactive charts</td>
-    <td align="center">Searchable groups, members, deadlines, and invite codes</td>
-    <td align="center">Thirty-Juz completion tracking and group contributions</td>
+    <td align="center">Reading time, pages, active days, and interactive charts<br />وقت القراءة والصفحات والأيام النشطة</td>
+    <td align="center">Searchable groups, members, deadlines, and invite codes<br />مجموعات وأعضاء ومواعيد ورموز دعوة</td>
+    <td align="center">Thirty-Juz completion tracking and group contributions<br />متابعة الأجزاء الثلاثين ومساهمات الأعضاء</td>
   </tr>
 </table>
 
-### Personalization
+### Personalization / التخصيص
 
 <table>
   <tr>
-    <td align="center"><strong>Reading Settings</strong></td>
-    <td align="center"><strong>Dark Appearance</strong></td>
+    <td align="center"><strong>Reading Settings<br />إعدادات القراءة</strong></td>
+    <td align="center"><strong>Dark Appearance<br />المظهر الداكن</strong></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/settings.jpg" width="280" alt="Wirdy reading and appearance settings" /></td>
     <td><img src="docs/screenshots/home-dark.jpg" width="280" alt="Wirdy home dashboard in dark appearance" /></td>
   </tr>
   <tr>
-    <td align="center">System, Light, and Dark modes with reader controls</td>
-    <td align="center">A complete low-light interface with native status styling</td>
+    <td align="center">System, Light, and Dark modes with reader controls<br />النظام والفاتح والداكن مع تحكمات القارئ</td>
+    <td align="center">A complete low-light interface with native status styling<br />واجهة داكنة مكتملة بأسلوب أصيل للمنصة</td>
   </tr>
 </table>
 
-The product interface supports Arabic RTL and English LTR. These HD screens
-were captured from the repository's interactive virtual iPhone simulator.
+Arabic uses an RTL layout and Lateef typography; English uses an LTR layout and
+the app's editorial Latin typeface. Both modes use Western numerals for clear,
+consistent session times and progress values. These HD captures were taken from
+the repository's interactive virtual iPhone simulator.
 
 ## Product Carousel
 
